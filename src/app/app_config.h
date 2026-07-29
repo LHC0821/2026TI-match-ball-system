@@ -83,7 +83,7 @@
  * 可选范围: APP_TUNE_MOTOR_POS_MIN_RAD..APP_TUNE_MOTOR_POS_MAX_RAD; must be less
  * than APP_CFG_MOTOR_ZERO_RAD.
  */
-#define APP_CFG_MOTOR_MIN_RAD -0.35f
+#define APP_CFG_MOTOR_MIN_RAD -0.5f
 
 /**
  * @brief 1.1.4 摆杆电机应用软上限，单位 rad
@@ -99,14 +99,14 @@
  * 可选范围: APP_TUNE_MOTOR_POS_MIN_RAD..APP_TUNE_MOTOR_POS_MAX_RAD; must be greater
  * than APP_CFG_MOTOR_ZERO_RAD.
  */
-#define APP_CFG_MOTOR_MAX_RAD 0.35f
+#define APP_CFG_MOTOR_MAX_RAD 0.5f
 
 /**
- * @brief 1.1.5 POS_VEL 模式位置命令速度参数，单位 rad/s
+ * @brief 1.1.5 MIT 模式目标速度参数，单位 rad/s
  *
  * @details
- * 该值作为 `bus_motor.set_pos_vel()` 的速度参数发送给 DM-4340，
- * 表示电机执行位置目标时允许使用的速度
+ * 该值作为 `bus_motor.set_pos_vel()` 的速度参数写入 MIT 控制帧的
+ * 目标速度字段；位置参数仍由同一次调用写入 MIT 控制帧的位置字段
  *
  * @note 该值越大，电机响应越快，但机构冲击和球位过冲风险也会增大
  *

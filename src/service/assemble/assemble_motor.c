@@ -92,11 +92,11 @@ SystemStatus assemble_motor(void) {
         return SYSTEM_STATUS_ERROR;
     }
     delay_ms(20u);
-    if(bus_motor.switch_mode(BAL_MOTOR_ID, DM_MOTOR_MODE_POS_VEL) != MOTOR_STATUS_OK) {
+    if(bus_motor.switch_mode(BAL_MOTOR_ID, DM_MOTOR_MODE_MIT) != MOTOR_STATUS_OK) {
         return SYSTEM_STATUS_ERROR;
     }
 
-    log_info("MOTOR DM-4340 configured: id=0x%02X master=0x%02X mode=POS_VEL",
+    log_info("MOTOR DM-4340 configured: id=0x%02X master=0x%02X mode=MIT",
              BAL_MOTOR_ID, BAL_MASTER_ID);
     return SYSTEM_STATUS_OK;
 }

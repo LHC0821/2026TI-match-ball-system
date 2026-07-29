@@ -36,6 +36,7 @@ static uint32_t s_prev_vision_ms = 0u;
 static uint32_t s_motor_cmd_start_ms = 0u;
 static uint32_t s_motor_enable_ms = 0u;
 static bool s_motor_cmd_ready = false;
+static bool s_return_zero_after_calib = false;
 static uint32_t s_sweep_stable_start_ms = 0u;
 static uint16_t s_calib_count = 0u;
 static float s_pitch_sum = 0.0f;
@@ -220,6 +221,7 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
     s_motor_cmd_start_ms = 0u;
     s_motor_enable_ms = 0u;
     s_motor_cmd_ready = false;
+    s_return_zero_after_calib = false;
     s_sweep_stable_start_ms = 0u;
     s_calib_count = 0u;
     s_pitch_sum = 0.0f;
@@ -289,9 +291,8 @@ void balance_process(float dt_s) {
                 s_pitch_zero = s_pitch_sum / (float)s_calib_count;
                 s_acc_zero = s_acc_sum / (float)s_calib_count;
                 s_acc_filt = 0.0f;
-                s_status.motor_cmd_rad = s_status.motor_online
-                                             ? s_status.motor_pos_rad
-                                             : s_config.motor_zero_rad;
+                s_status.motor_cmd_rad = s_config.motor_zero_rad;
+                s_return_zero_after_calib = true;
                 if(s_enable_requested) {
                     balance_set_state(BALANCE_STATE_ACTIVE);
                     balance_enable_motor(now_ms);
@@ -327,6 +328,14 @@ void balance_process(float dt_s) {
         return;
     }
     if(!s_motor_cmd_ready) {
+        if(s_return_zero_after_calib) {
+            s_status.motor_cmd_rad = s_config.motor_zero_rad;
+            s_return_zero_after_calib = false;
+            s_motor_cmd_ready = true;
+            s_motor_send_tick = BALANCE_MOTOR_SEND_DIV - 1u;
+            balance_send_motor(now_ms);
+            return;
+        }
         s_status.motor_cmd_rad = s_status.motor_pos_rad;
         s_motor_cmd_ready = true;
     }
