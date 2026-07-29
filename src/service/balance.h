@@ -21,6 +21,7 @@ typedef enum {
     BALANCE_STATUS_OK = 0,
     BALANCE_STATUS_INVALID_PARAM,
     BALANCE_STATUS_DEPENDENCY_MISSING,
+    BALANCE_STATUS_STATE_DENIED,
 } BalanceStatusCode;
 
 /**
@@ -63,6 +64,18 @@ typedef enum {
     BALANCE_AXIS_Y,
     BALANCE_AXIS_Z,
 } BalanceAxis;
+
+/**
+ * @brief BalanceCtrl 枚举类型
+ */
+typedef enum {
+    BALANCE_CTRL_NONE = 0u,
+    BALANCE_CTRL_LEVEL = (1u << 0),
+    BALANCE_CTRL_ACC = (1u << 1),
+    BALANCE_CTRL_VISION = (1u << 2),
+    BALANCE_CTRL_VISION_I = (1u << 3),
+    BALANCE_CTRL_ALL = 0x0Fu,
+} BalanceCtrl;
 
 /**
  * @brief BalanceVisionSample 结构体类型
@@ -121,16 +134,60 @@ typedef struct {
     PidConfig pos_pid;
 
     float vision_angle_max_rad;
+    float vision_decay_tau_s;
     float target_limit_m;
     uint8_t vision_quality_min;
     uint32_t vision_timeout_ms;
     uint32_t imu_timeout_ms;
     uint32_t motor_timeout_ms;
 
+    float sweep_pos_m;
+    float sweep_err_m;
+    float sweep_vel_m_s;
+    uint32_t sweep_stable_ms;
+
     uint32_t calib_settle_ms;
     uint16_t calib_samples;
+    uint8_t ctrl_mask;
     bool auto_enable;
 } BalanceConfig;
+
+/**
+ * @brief BalanceTuneConfig 结构体类型
+ */
+typedef struct {
+    float motor_zero_rad;
+    float motor_min_rad;
+    float motor_max_rad;
+    float motor_speed_rad_s;
+    float motor_rate_rad_s;
+    float motor_sign;
+
+    BalanceAxis acc_axis;
+    float acc_sign;
+    float pitch_sign;
+    float ball_sign;
+    float level_gain;
+    float acc_gain;
+
+    float acc_tau_s;
+    float pos_tau_s;
+    float vel_tau_s;
+    PidConfig pos_pid;
+
+    float vision_angle_max_rad;
+    float vision_decay_tau_s;
+    float target_limit_m;
+    uint8_t vision_quality_min;
+    uint32_t vision_timeout_ms;
+
+    float sweep_pos_m;
+    float sweep_err_m;
+    float sweep_vel_m_s;
+    uint32_t sweep_stable_ms;
+
+    uint8_t ctrl_mask;
+} BalanceTuneConfig;
 
 /**
  * @brief BalanceStatus 结构体类型
@@ -158,12 +215,15 @@ typedef struct {
     uint16_t vision_frame_seq;
     uint16_t command_seq;
     uint8_t motor_error;
+    uint8_t ctrl_mask;
 
+    bool enable_requested;
     bool imu_online;
     bool motor_online;
     bool motor_enabled;
     bool vision_online;
     bool vision_valid;
+    bool ball_loop_closed;
 } BalanceStatus;
 
 // ! ========================= 接 口 函 数 声 明 ========================= ! //
@@ -195,6 +255,18 @@ void balance_set_command(const BalanceCommand* command);
  * @param stamp_ms 时间戳，单位 ms
  */
 void balance_on_motor_feedback(const BusMotorFeedback* feedback, uint32_t stamp_ms);
+/**
+ * @brief balance_get_tune 接口函数
+ * @param config 配置结构体指针
+ * @return 状态码
+ */
+BalanceStatusCode balance_get_tune(BalanceTuneConfig* config);
+/**
+ * @brief balance_apply_tune 接口函数
+ * @param config 配置结构体指针
+ * @return 状态码
+ */
+BalanceStatusCode balance_apply_tune(const BalanceTuneConfig* config);
 /**
  * @brief balance_get_status 接口函数
  * @return 结果指针

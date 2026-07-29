@@ -5,6 +5,7 @@
 
 #include "app_runtime.h"
 
+#include "app_tune.h"
 #include "binary_frame.h"
 #include "log.h"
 #include "rgb_led/rgb_led.h"
@@ -48,13 +49,15 @@ static uint8_t app_runtime_make_status_flags(const BalanceStatus* status);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //
 
-void app_runtime_init(void) {
+bool app_runtime_init(void) {
     s_status_tick = 0u;
     s_rgb_tick = 0u;
     s_log_tick = 0u;
+    return app_tune_init();
 }
 
 void app_runtime_process(void) {
+    app_tune_apply_pending();
     balance_process(APP_RUNTIME_DT_S);
 
     s_status_tick++;
@@ -80,6 +83,7 @@ void app_runtime_background(void) {
     BalanceVisionSample sample;
     BalanceCommand command;
 
+    app_tune_process();
     vision_comms_process();
 
     while(vision_comms_take_ball(&sample)) {
@@ -159,25 +163,44 @@ static void app_runtime_update_rgb(void) {
 
 static void app_runtime_log_status(void) {
     const BalanceStatus* status = balance_get_status();
+    const AppTuneStatus* tune = app_tune_get_status();
     VisionCommsStats stats;
 
     vision_comms_get_stats(&stats);
-    log_info("BAL state=%s mode=%s ball=%.3f target=%.3f pitch=%.3f acc=%.3f mcmd=%.3f mpos=%.3f mon=%u men=%u merr=0x%X vis=%u fault=0x%08lX rx=%lu crc=%lu",
+    log_info("BAL state=%s mode=%s en=%u ctrl=L%uA%uV%uI%u loop=%s ball=%.3f target=%.3f pitch=%.3f acc=%.3f",
              balance_state_str(status->state),
              balance_mode_str(status->mode),
+             status->enable_requested ? 1u : 0u,
+             (status->ctrl_mask & BALANCE_CTRL_LEVEL) != 0u,
+             (status->ctrl_mask & BALANCE_CTRL_ACC) != 0u,
+             (status->ctrl_mask & BALANCE_CTRL_VISION) != 0u,
+             (status->ctrl_mask & BALANCE_CTRL_VISION_I) != 0u,
+             status->ball_loop_closed ? "CLOSED" : "OPEN",
              status->ball_pos_m,
              status->target_m,
              status->pitch_rad,
-             status->acc_m_s2,
+             status->acc_m_s2);
+    log_info("BAL angle level=%.3f acc=%.3f vis=%.3f cmd=%.3f pos=%.3f mon=%u men=%u err=0x%X fault=0x%08lX vrx=%lu vcrc=%lu",
+             status->level_angle_rad,
+             status->acc_angle_rad,
+             status->vision_angle_rad,
              status->motor_cmd_rad,
              status->motor_pos_rad,
              status->motor_online ? 1u : 0u,
              status->motor_enabled ? 1u : 0u,
              status->motor_error,
-             status->vision_valid ? 1u : 0u,
              (unsigned long)status->fault_flags,
              (unsigned long)stats.rx_frame_count,
              (unsigned long)stats.rx_bad_crc_count);
+    log_info("TUNE state=%s dirty=%u pending=%u seq=%u rx=%lu apply=%lu reject=%lu overflow=%lu",
+             app_tune_state_str(tune->state),
+             tune->dirty ? 1u : 0u,
+             tune->apply_pending ? 1u : 0u,
+             tune->session_seq,
+             (unsigned long)tune->rx_line_count,
+             (unsigned long)tune->apply_count,
+             (unsigned long)tune->reject_count,
+             (unsigned long)tune->overflow_count);
 }
 
 static uint8_t app_runtime_make_status_flags(const BalanceStatus* status) {

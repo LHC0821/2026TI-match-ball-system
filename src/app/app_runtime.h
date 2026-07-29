@@ -8,12 +8,14 @@
 
 #include "balance.h"
 
+#include <stdbool.h>
+
 // ! ========================= 接 口 函 数 声 明 ========================= ! //
 
 /**
  * @brief app_runtime_init 接口函数
  */
-void app_runtime_init(void);
+bool app_runtime_init(void);
 /**
  * @brief app_runtime_process 接口函数
  */

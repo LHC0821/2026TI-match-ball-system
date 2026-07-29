@@ -57,8 +57,9 @@ static inline void entry_init(void) {
     log_info("BOOT balance ready");
     delay_ms(100);
 
-    app_runtime_init();
-    log_info("BOOT runtime ready");
+    if(!app_runtime_init())
+        return;
+    log_info("BOOT runtime and tune ready");
     delay_ms(100);
 
     if(assemble_tim6_500hz() != SYSTEM_STATUS_OK)

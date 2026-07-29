@@ -4,6 +4,8 @@
 
 // ! ========================= 变 量 声 明 ========================= ! //
 
+static void (*s_uart1_rx_complete_callback)(void) = NULL;
+static void (*s_uart1_error_callback)(void) = NULL;
 static void (*s_uart10_rx_complete_callback)(void) = NULL;
 static void (*s_uart10_error_callback)(void) = NULL;
 
@@ -34,13 +36,19 @@ bool uart_receive_it(UART_HandleTypeDef* huart, uint8_t* data, uint16_t len) {
 }
 
 void uart_register_rx_complete_callback(UART_HandleTypeDef* huart, void (*callback)(void)) {
-    if(huart == &huart10) {
+    if(huart == &huart1) {
+        s_uart1_rx_complete_callback = callback;
+    }
+    else if(huart == &huart10) {
         s_uart10_rx_complete_callback = callback;
     }
 }
 
 void uart_register_error_callback(UART_HandleTypeDef* huart, void (*callback)(void)) {
-    if(huart == &huart10) {
+    if(huart == &huart1) {
+        s_uart1_error_callback = callback;
+    }
+    else if(huart == &huart10) {
         s_uart10_error_callback = callback;
     }
 }
@@ -48,13 +56,19 @@ void uart_register_error_callback(UART_HandleTypeDef* huart, void (*callback)(vo
 // ! ========================= HAL 回 调 实 现 ========================= ! //
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart) {
-    if(huart == &huart10 && s_uart10_rx_complete_callback != NULL) {
+    if(huart == &huart1 && s_uart1_rx_complete_callback != NULL) {
+        s_uart1_rx_complete_callback();
+    }
+    else if(huart == &huart10 && s_uart10_rx_complete_callback != NULL) {
         s_uart10_rx_complete_callback();
     }
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart) {
-    if(huart == &huart10 && s_uart10_error_callback != NULL) {
+    if(huart == &huart1 && s_uart1_error_callback != NULL) {
+        s_uart1_error_callback();
+    }
+    else if(huart == &huart10 && s_uart10_error_callback != NULL) {
         s_uart10_error_callback();
     }
 }
