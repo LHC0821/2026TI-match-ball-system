@@ -39,36 +39,210 @@ static DmMotorSlot s_slots[DM_MOTOR_MAX_ID];
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief dm_motor_init 内部辅助函数
+ * @param config 配置结构体指针
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_init(const BusMotorConfig* config);
+/**
+ * @brief dm_motor_status_str 内部辅助函数
+ * @param status 状态值
+ * @return 字符串指针
+ */
 static const char* dm_motor_status_str(BusMotorStatus status);
+/**
+ * @brief dm_motor_mode_str 内部辅助函数
+ * @param mode 工作模式
+ * @return 字符串指针
+ */
 static const char* dm_motor_mode_str(BusMotorMode mode);
+/**
+ * @brief dm_motor_enable 内部辅助函数
+ * @param id 设备或协议 ID
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_enable(uint16_t id);
+/**
+ * @brief dm_motor_disable 内部辅助函数
+ * @param id 设备或协议 ID
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_disable(uint16_t id);
+/**
+ * @brief dm_motor_switch_mode 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param mode 工作模式
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_switch_mode(uint16_t id, BusMotorMode mode);
+/**
+ * @brief dm_motor_set_pos 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param position 参数值
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_set_pos(uint16_t id, float position);
+/**
+ * @brief dm_motor_set_spd 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param speed 参数值
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_set_spd(uint16_t id, float speed);
+/**
+ * @brief dm_motor_set_pos_vel 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param position 参数值
+ * @param speed 参数值
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_set_pos_vel(uint16_t id, float position, float speed);
+/**
+ * @brief dm_motor_set_tor 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param torque 参数值
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_set_tor(uint16_t id, float torque);
+/**
+ * @brief dm_motor_set_pd 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param kp 参数值
+ * @param kd 参数值
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_set_pd(uint16_t id, float kp, float kd);
+/**
+ * @brief dm_motor_update_feedback 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param feedback 反馈数据指针
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_update_feedback(uint16_t id, BusMotorFeedback* feedback);
+/**
+ * @brief dm_motor_get_pos 内部辅助函数
+ * @param id 设备或协议 ID
+ * @return 返回值
+ */
 static float dm_motor_get_pos(uint16_t id);
+/**
+ * @brief dm_motor_get_spd 内部辅助函数
+ * @param id 设备或协议 ID
+ * @return 返回值
+ */
 static float dm_motor_get_spd(uint16_t id);
+/**
+ * @brief dm_motor_get_tor 内部辅助函数
+ * @param id 设备或协议 ID
+ * @return 返回值
+ */
 static float dm_motor_get_tor(uint16_t id);
+/**
+ * @brief dm_motor_stop 内部辅助函数
+ * @param id 设备或协议 ID
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_stop(uint16_t id);
+/**
+ * @brief dm_motor_brake 内部辅助函数
+ * @param id 设备或协议 ID
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_brake(uint16_t id);
 
+/**
+ * @brief dm_motor_get_slot 内部辅助函数
+ * @param id 设备或协议 ID
+ * @return 结果指针
+ */
 static DmMotorSlot* dm_motor_get_slot(uint16_t id);
+/**
+ * @brief dm_motor_get_slot_const 内部辅助函数
+ * @param id 设备或协议 ID
+ * @return 结果指针
+ */
 static const DmMotorSlot* dm_motor_get_slot_const(uint16_t id);
+/**
+ * @brief dm_motor_reset_slot 内部辅助函数
+ * @param slot 参数值
+ * @param id 设备或协议 ID
+ */
 static void dm_motor_reset_slot(DmMotorSlot* slot, uint16_t id);
+/**
+ * @brief dm_motor_send 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param data 数据缓冲区指针
+ * @param len 数据长度
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_send(uint32_t id, const uint8_t* data, uint8_t len);
+/**
+ * @brief dm_motor_send_delayed 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param data 数据缓冲区指针
+ * @param len 数据长度
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_send_delayed(uint32_t id, const uint8_t* data, uint8_t len);
+/**
+ * @brief dm_motor_write_mode 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param mode 工作模式
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_write_mode(uint16_t id, DmMotorMode mode);
+/**
+ * @brief dm_motor_apply_command 内部辅助函数
+ * @param id 设备或协议 ID
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_apply_command(uint16_t id);
+/**
+ * @brief dm_motor_send_pos_vel 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param slot 参数值
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_send_pos_vel(uint16_t id, const DmMotorSlot* slot);
+/**
+ * @brief dm_motor_send_speed 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param slot 参数值
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_send_speed(uint16_t id, const DmMotorSlot* slot);
+/**
+ * @brief dm_motor_send_mit 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param slot 参数值
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_send_mit(uint16_t id, const DmMotorSlot* slot);
+/**
+ * @brief dm_motor_send_pos_vel_tor 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param slot 参数值
+ * @return 状态码
+ */
 static BusMotorStatus dm_motor_send_pos_vel_tor(uint16_t id, const DmMotorSlot* slot);
+/**
+ * @brief dm_motor_f32_to_u16 内部辅助函数
+ * @param val 参数值
+ * @param min 参数值
+ * @param max 参数值
+ * @param bits 参数值
+ * @return 返回值
+ */
 static uint16_t dm_motor_f32_to_u16(float val, float min, float max, uint8_t bits);
+/**
+ * @brief dm_motor_u16_to_f32 内部辅助函数
+ * @param val 参数值
+ * @param min 参数值
+ * @param max 参数值
+ * @param bits 参数值
+ * @return 返回值
+ */
 static float dm_motor_u16_to_f32(uint16_t val, float min, float max, uint8_t bits);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

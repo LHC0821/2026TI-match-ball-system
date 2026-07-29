@@ -8,8 +8,22 @@ static const ProtocolParserCriticalOps* s_default_ops = NULL;
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief rb_enter 内部辅助函数
+ * @param self 对象实例指针
+ */
 static void rb_enter(const RingBuf* self);
+/**
+ * @brief rb_exit 内部辅助函数
+ * @param self 对象实例指针
+ */
 static void rb_exit(const RingBuf* self);
+/**
+ * @brief crc16_update 内部辅助函数
+ * @param crc 参数值
+ * @param data 数据缓冲区指针
+ * @return 返回值
+ */
 static uint16_t crc16_update(uint16_t crc, uint8_t data);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

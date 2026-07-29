@@ -19,6 +19,9 @@ static bool init_ok = false;
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //
 
+/**
+ * @brief entry_init 内部辅助函数
+ */
 static inline void entry_init(void) {
     if(assemble_delay() != SYSTEM_STATUS_OK)
         return;
@@ -68,6 +71,9 @@ static inline void entry_init(void) {
     delay_ms(100);
 }
 
+/**
+ * @brief entry_loop 内部辅助函数
+ */
 static inline void entry_loop(void) {
     if(!init_ok) {
         return;

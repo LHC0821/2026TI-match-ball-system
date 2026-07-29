@@ -11,16 +11,63 @@
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief bmi088_accel_cs_low 内部辅助函数
+ */
 static void bmi088_accel_cs_low(void);
+/**
+ * @brief bmi088_accel_cs_high 内部辅助函数
+ */
 static void bmi088_accel_cs_high(void);
+/**
+ * @brief bmi088_gyro_cs_low 内部辅助函数
+ */
 static void bmi088_gyro_cs_low(void);
+/**
+ * @brief bmi088_gyro_cs_high 内部辅助函数
+ */
 static void bmi088_gyro_cs_high(void);
+/**
+ * @brief bmi088_read_write_byte 内部辅助函数
+ * @param tx_data 参数值
+ * @return 返回值
+ */
 static uint8_t bmi088_read_write_byte(uint8_t tx_data);
+/**
+ * @brief bmi088_transmit_receive_dma 内部辅助函数
+ * @param tx_data 参数值
+ * @param rx_data 参数值
+ * @param len 数据长度
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool bmi088_transmit_receive_dma(uint8_t* tx_data, uint8_t* rx_data, uint16_t len);
+/**
+ * @brief bmi088_get_spi_handle 内部辅助函数
+ * @return 结果指针
+ */
 static void* bmi088_get_spi_handle(void);
+/**
+ * @brief bmi088_delay_us 内部辅助函数
+ * @param us 时间，单位 us
+ */
 static void bmi088_delay_us(uint16_t us);
+/**
+ * @brief bmi088_cache_clean 内部辅助函数
+ * @param addr 参数值
+ * @param len 数据长度
+ */
 static void bmi088_cache_clean(const void* addr, uint32_t len);
+/**
+ * @brief bmi088_cache_invalidate 内部辅助函数
+ * @param addr 参数值
+ * @param len 数据长度
+ */
 static void bmi088_cache_invalidate(const void* addr, uint32_t len);
+/**
+ * @brief stm32_bmi088_exti_callback 内部辅助函数
+ * @param gpio_pin 参数值
+ * @param user 用户上下文指针
+ */
 static void stm32_bmi088_exti_callback(uint16_t gpio_pin, void* user);
 
 // ! ========================= 变 量 声 明 ========================= ! //

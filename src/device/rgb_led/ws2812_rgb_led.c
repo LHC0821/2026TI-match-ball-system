@@ -21,15 +21,68 @@ static bool s_initialized;
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief ws2812_rgb_led_init 内部辅助函数
+ * @param config 配置结构体指针
+ * @return 状态码
+ */
 static RgbLedStatus ws2812_rgb_led_init(const RgbLedConfig* config);
+/**
+ * @brief ws2812_rgb_led_status_str 内部辅助函数
+ * @param status 状态值
+ * @return 字符串指针
+ */
 static const char* ws2812_rgb_led_status_str(RgbLedStatus status);
+/**
+ * @brief ws2812_rgb_led_set_rgb 内部辅助函数
+ * @param index 参数值
+ * @param r 参数值
+ * @param g 参数值
+ * @param b 参数值
+ * @return 状态码
+ */
 static RgbLedStatus ws2812_rgb_led_set_rgb(uint16_t index, uint8_t r, uint8_t g, uint8_t b);
+/**
+ * @brief ws2812_rgb_led_fill 内部辅助函数
+ * @param r 参数值
+ * @param g 参数值
+ * @param b 参数值
+ * @return 状态码
+ */
 static RgbLedStatus ws2812_rgb_led_fill(uint8_t r, uint8_t g, uint8_t b);
+/**
+ * @brief ws2812_rgb_led_clear 内部辅助函数
+ * @return 状态码
+ */
 static RgbLedStatus ws2812_rgb_led_clear(void);
+/**
+ * @brief ws2812_rgb_led_show 内部辅助函数
+ * @return 状态码
+ */
 static RgbLedStatus ws2812_rgb_led_show(void);
+/**
+ * @brief ws2812_rgb_led_write_complete 内部辅助函数
+ * @return 状态码
+ */
 static RgbLedStatus ws2812_rgb_led_write_complete(void);
+/**
+ * @brief ws2812_rgb_led_get_color 内部辅助函数
+ * @param index 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 static RgbLedStatus ws2812_rgb_led_get_color(uint16_t index, RgbLedColor* out);
+/**
+ * @brief ws2812_rgb_led_encode_byte 内部辅助函数
+ * @param value 数值
+ * @param out 输出缓冲区或输出参数
+ */
 static void ws2812_rgb_led_encode_byte(uint8_t value, uint8_t* out);
+/**
+ * @brief ws2812_rgb_led_color_offset 内部辅助函数
+ * @param index 参数值
+ * @return 返回值
+ */
 static uint32_t ws2812_rgb_led_color_offset(uint16_t index);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

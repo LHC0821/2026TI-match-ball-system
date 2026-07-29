@@ -14,6 +14,9 @@ typedef struct {
     void (*exit)(void);
 } ProtocolParserCriticalOps;
 
+/**
+ * @brief RingBufErrorCode 枚举类型
+ */
 typedef enum {
     RING_BUF_SUCCESS = 0,
     RING_BUF_ERR_NULL_PTR,
@@ -23,6 +26,9 @@ typedef enum {
     RING_BUF_ERR_NOT_INITIALIZE,
 } RingBufErrorCode;
 
+/**
+ * @brief FrameParserErrorCode 枚举类型
+ */
 typedef enum {
     FRAME_PARSER_SUCCESS = 0,
     FRAME_PARSER_PROCESSING,
@@ -37,6 +43,9 @@ typedef enum {
     FRAME_PARSER_ERR_NOT_INITIALIZE,
 } FrameParserErrorCode;
 
+/**
+ * @brief FrameParserState 枚举类型
+ */
 typedef enum {
     STATE_IDLE = 0,
     STATE_HEADER_MATCHING,
@@ -98,23 +107,88 @@ typedef struct {
  */
 void protocol_parser_register_critical_ops(const ProtocolParserCriticalOps* ops);
 
+/**
+ * @brief ring_buf_create 接口函数
+ * @param self 对象实例指针
+ * @param buf 参数值
+ * @param capacity 参数值
+ * @param overwrite 参数值
+ * @return 状态码
+ */
 RingBufErrorCode ring_buf_create(RingBuf* const self,
                                  uint8_t* const buf,
                                  const uint16_t capacity,
                                  const bool overwrite);
+/**
+ * @brief ring_buf_create_with_ops 接口函数
+ * @param self 对象实例指针
+ * @param buf 参数值
+ * @param capacity 参数值
+ * @param overwrite 参数值
+ * @param ops 参数值
+ * @return 状态码
+ */
 RingBufErrorCode ring_buf_create_with_ops(RingBuf* const self,
                                           uint8_t* const buf,
                                           const uint16_t capacity,
                                           const bool overwrite,
                                           const ProtocolParserCriticalOps* ops);
+/**
+ * @brief ring_buf_write 接口函数
+ * @param self 对象实例指针
+ * @param data 数据缓冲区指针
+ * @return 状态码
+ */
 RingBufErrorCode ring_buf_write(RingBuf* const self, const uint8_t data);
+/**
+ * @brief ring_buf_read 接口函数
+ * @param self 对象实例指针
+ * @param data 数据缓冲区指针
+ * @return 状态码
+ */
 RingBufErrorCode ring_buf_read(RingBuf* const self, uint8_t* const data);
+/**
+ * @brief ring_buf_clear 接口函数
+ * @param self 对象实例指针
+ * @return 状态码
+ */
 RingBufErrorCode ring_buf_clear(RingBuf* const self);
+/**
+ * @brief ring_buf_is_full 接口函数
+ * @param self 对象实例指针
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 bool ring_buf_is_full(RingBuf* const self);
+/**
+ * @brief ring_buf_is_empty 接口函数
+ * @param self 对象实例指针
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 bool ring_buf_is_empty(RingBuf* const self);
+/**
+ * @brief ring_buf_get_size 接口函数
+ * @param self 对象实例指针
+ * @return 返回值
+ */
 int ring_buf_get_size(RingBuf* const self);
+/**
+ * @brief ring_buf_get_capacity 接口函数
+ * @param self 对象实例指针
+ * @return 返回值
+ */
 int ring_buf_get_capacity(RingBuf* const self);
 
+/**
+ * @brief frame_parser_create 接口函数
+ * @param self 对象实例指针
+ * @param ring_buf 参数值
+ * @param header 参数值
+ * @param header_length 参数值
+ * @param frame_buf 参数值
+ * @param frame_buf_capacity 参数值
+ * @param crc_enabled 参数值
+ * @return 状态码
+ */
 FrameParserErrorCode frame_parser_create(FrameParser* const self,
                                          RingBuf* const ring_buf,
                                          const uint8_t* const header,
@@ -122,12 +196,40 @@ FrameParserErrorCode frame_parser_create(FrameParser* const self,
                                          uint8_t* const frame_buf,
                                          const uint16_t frame_buf_capacity,
                                          const bool crc_enabled);
+/**
+ * @brief frame_parser_write 接口函数
+ * @param self 对象实例指针
+ * @param data 数据缓冲区指针
+ * @return 状态码
+ */
 FrameParserErrorCode frame_parser_write(FrameParser* const self, const uint8_t data);
+/**
+ * @brief frame_parser_process 接口函数
+ * @param self 对象实例指针
+ * @return 状态码
+ */
 FrameParserErrorCode frame_parser_process(FrameParser* const self);
+/**
+ * @brief frame_parser_get_frame 接口函数
+ * @param self 对象实例指针
+ * @param frame_buffer 参数值
+ * @param frame_length 参数值
+ * @return 状态码
+ */
 FrameParserErrorCode frame_parser_get_frame(FrameParser* const self,
                                             uint8_t** const frame_buffer,
                                             uint16_t* const frame_length);
+/**
+ * @brief frame_parser_finish 接口函数
+ * @param self 对象实例指针
+ * @return 状态码
+ */
 FrameParserErrorCode frame_parser_finish(FrameParser* const self);
+/**
+ * @brief frame_parser_reset 接口函数
+ * @param self 对象实例指针
+ * @return 状态码
+ */
 FrameParserErrorCode frame_parser_reset(FrameParser* const self);
 
 #endif

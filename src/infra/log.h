@@ -242,10 +242,35 @@ LogStatus log_error(const char* format, ...) LOG_PRINTF_FORMAT(1, 2);
  * 这些函数主要供 log_vofa(...) 宏内部调用，业务代码通常不需要直接调用
  */
 LogVofaValue log_vofa_value_i64(long long value);
+/**
+ * @brief log_vofa_value_u64 接口函数
+ * @param value 数值
+ * @return 返回值
+ */
 LogVofaValue log_vofa_value_u64(unsigned long long value);
+/**
+ * @brief log_vofa_value_f64 接口函数
+ * @param value 数值
+ * @return 返回值
+ */
 LogVofaValue log_vofa_value_f64(double value);
+/**
+ * @brief log_vofa_value_bool 接口函数
+ * @param value 数值
+ * @return 返回值
+ */
 LogVofaValue log_vofa_value_bool(bool value);
+/**
+ * @brief log_vofa_value_cstr 接口函数
+ * @param value 数值
+ * @return 返回值
+ */
 LogVofaValue log_vofa_value_cstr(const char* value);
+/**
+ * @brief log_vofa_value_ptr 接口函数
+ * @param value 数值
+ * @return 返回值
+ */
 LogVofaValue log_vofa_value_ptr(const void* value);
 
 /**

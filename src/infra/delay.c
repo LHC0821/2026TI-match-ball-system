@@ -18,7 +18,19 @@ struct {
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief ms_timeout 内部辅助函数
+ * @param start 参数值
+ * @param timeout_ms 超时时间，单位 ms
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool ms_timeout(ms_t start, ms_t timeout_ms);
+/**
+ * @brief us_timeout 内部辅助函数
+ * @param start 参数值
+ * @param timeout_us 超时时间，单位 us
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool us_timeout(us_t start, us_t timeout_us);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

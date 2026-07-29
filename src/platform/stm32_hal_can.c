@@ -22,10 +22,25 @@ static CanRxCallbackSlot s_rx_slots[CAN_RX_CALLBACK_SLOT_NUM] = { 0 };
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief can_len_to_dlc 内部辅助函数
+ * @param len 数据长度
+ * @return 返回值
+ */
 static uint32_t can_len_to_dlc(uint8_t len);
+/**
+ * @brief can_dispatch_rx 内部辅助函数
+ * @param hcan FDCAN 句柄指针
+ * @param header 参数值
+ * @param data 数据缓冲区指针
+ */
 static void can_dispatch_rx(FDCAN_HandleTypeDef* hcan,
                             const FDCAN_RxHeaderTypeDef* header,
                             const uint8_t data[8]);
+/**
+ * @brief can_enable_transceiver 内部辅助函数
+ * @param hcan FDCAN 句柄指针
+ */
 static void can_enable_transceiver(FDCAN_HandleTypeDef* hcan);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

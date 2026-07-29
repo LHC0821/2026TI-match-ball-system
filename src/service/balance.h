@@ -14,12 +14,18 @@
 
 // ! ========================= 接 口 变 量 / Typedef 声 明 ========================= ! //
 
+/**
+ * @brief BalanceStatusCode 枚举类型
+ */
 typedef enum {
     BALANCE_STATUS_OK = 0,
     BALANCE_STATUS_INVALID_PARAM,
     BALANCE_STATUS_DEPENDENCY_MISSING,
 } BalanceStatusCode;
 
+/**
+ * @brief BalanceState 枚举类型
+ */
 typedef enum {
     BALANCE_STATE_INIT = 0,
     BALANCE_STATE_CALIB,
@@ -28,12 +34,18 @@ typedef enum {
     BALANCE_STATE_FAULT,
 } BalanceState;
 
+/**
+ * @brief BalanceMode 枚举类型
+ */
 typedef enum {
     BALANCE_MODE_HOLD_CENTER = 0,
     BALANCE_MODE_HOLD_POS,
     BALANCE_MODE_SWEEP_TEST,
 } BalanceMode;
 
+/**
+ * @brief BalanceFault 枚举类型
+ */
 typedef enum {
     BALANCE_FAULT_NONE = 0u,
     BALANCE_FAULT_IMU_TIMEOUT = (1u << 0),
@@ -43,12 +55,18 @@ typedef enum {
     BALANCE_FAULT_DATA_INVALID = (1u << 4),
 } BalanceFault;
 
+/**
+ * @brief BalanceAxis 枚举类型
+ */
 typedef enum {
     BALANCE_AXIS_X = 0,
     BALANCE_AXIS_Y,
     BALANCE_AXIS_Z,
 } BalanceAxis;
 
+/**
+ * @brief BalanceVisionSample 结构体类型
+ */
 typedef struct {
     uint32_t stamp_ms;
     uint32_t capture_ms;
@@ -58,6 +76,9 @@ typedef struct {
     bool valid;
 } BalanceVisionSample;
 
+/**
+ * @brief BalanceCommand 结构体类型
+ */
 typedef struct {
     bool enable;
     bool clear_fault;
@@ -66,10 +87,16 @@ typedef struct {
     uint16_t command_seq;
 } BalanceCommand;
 
+/**
+ * @brief BalancePortOps 结构体类型
+ */
 typedef struct {
     uint32_t (*now_ms)(void);
 } BalancePortOps;
 
+/**
+ * @brief BalanceConfig 结构体类型
+ */
 typedef struct {
     BalancePortOps port_ops;
 
@@ -105,6 +132,9 @@ typedef struct {
     bool auto_enable;
 } BalanceConfig;
 
+/**
+ * @brief BalanceStatus 结构体类型
+ */
 typedef struct {
     uint32_t stamp_ms;
     BalanceState state;
@@ -138,13 +168,49 @@ typedef struct {
 
 // ! ========================= 接 口 函 数 声 明 ========================= ! //
 
+/**
+ * @brief balance_init 接口函数
+ * @param config 配置结构体指针
+ * @return 状态码
+ */
 BalanceStatusCode balance_init(const BalanceConfig* config);
+/**
+ * @brief balance_process 接口函数
+ * @param dt_s 周期时间，单位 s
+ */
 void balance_process(float dt_s);
+/**
+ * @brief balance_set_vision 接口函数
+ * @param sample 样本数据指针
+ */
 void balance_set_vision(const BalanceVisionSample* sample);
+/**
+ * @brief balance_set_command 接口函数
+ * @param command 命令数据指针
+ */
 void balance_set_command(const BalanceCommand* command);
+/**
+ * @brief balance_on_motor_feedback 接口函数
+ * @param feedback 反馈数据指针
+ * @param stamp_ms 时间戳，单位 ms
+ */
 void balance_on_motor_feedback(const BusMotorFeedback* feedback, uint32_t stamp_ms);
+/**
+ * @brief balance_get_status 接口函数
+ * @return 结果指针
+ */
 const BalanceStatus* balance_get_status(void);
+/**
+ * @brief balance_state_str 接口函数
+ * @param state 状态枚举值
+ * @return 字符串指针
+ */
 const char* balance_state_str(BalanceState state);
+/**
+ * @brief balance_mode_str 接口函数
+ * @param mode 工作模式
+ * @return 字符串指针
+ */
 const char* balance_mode_str(BalanceMode mode);
 
 #endif

@@ -23,14 +23,77 @@ static uint32_t s_tx_count;
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief log_vwrite 内部辅助函数
+ * @param level 参数值
+ * @param color 参数值
+ * @param tag 参数值
+ * @param format 参数值
+ * @param args 参数值
+ * @return 状态码
+ */
 static LogStatus log_vwrite(LogLevel level, const char* color, const char* tag, const char* format, va_list args);
+/**
+ * @brief log_append_text 内部辅助函数
+ * @param buffer 参数值
+ * @param size 参数值
+ * @param pos 参数值
+ * @param text 参数值
+ * @return 返回值
+ */
 static uint32_t log_append_text(char* buffer, uint32_t size, uint32_t pos, const char* text);
+/**
+ * @brief log_append_format 内部辅助函数
+ * @param buffer 参数值
+ * @param size 参数值
+ * @param pos 参数值
+ * @param format 参数值
+ * @return 返回值
+ */
 static uint32_t log_append_format(char* buffer, uint32_t size, uint32_t pos, const char* format, ...);
+/**
+ * @brief log_append_u64 内部辅助函数
+ * @param buffer 参数值
+ * @param size 参数值
+ * @param pos 参数值
+ * @param value 数值
+ * @return 返回值
+ */
 static uint32_t log_append_u64(char* buffer, uint32_t size, uint32_t pos, unsigned long long value);
+/**
+ * @brief log_append_i64 内部辅助函数
+ * @param buffer 参数值
+ * @param size 参数值
+ * @param pos 参数值
+ * @param value 数值
+ * @return 返回值
+ */
 static uint32_t log_append_i64(char* buffer, uint32_t size, uint32_t pos, long long value);
+/**
+ * @brief log_append_vofa_value 内部辅助函数
+ * @param buffer 参数值
+ * @param size 参数值
+ * @param pos 参数值
+ * @param value 数值
+ * @return 返回值
+ */
 static uint32_t log_append_vofa_value(char* buffer, uint32_t size, uint32_t pos, const LogVofaValue* value);
+/**
+ * @brief log_start_async_write 内部辅助函数
+ * @return 状态码
+ */
 static LogStatus log_start_async_write(void);
+/**
+ * @brief log_prepare_tx_buffer 内部辅助函数
+ * @param tx_buffer 参数值
+ * @return 状态码
+ */
 static LogStatus log_prepare_tx_buffer(char** tx_buffer);
+/**
+ * @brief log_commit_tx_buffer 内部辅助函数
+ * @param len 数据长度
+ * @return 状态码
+ */
 static LogStatus log_commit_tx_buffer(uint32_t len);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

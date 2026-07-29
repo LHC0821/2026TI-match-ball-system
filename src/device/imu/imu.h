@@ -212,7 +212,7 @@ ImuStatus imu_get_sample(ImuSample* sample);
 /**
  * @brief 将 IMU 状态码转换为字符串
  * @param status IMU 状态码
- * @return 状态码名称字符串
+ * @return 字符串指针
  */
 const char* imu_status_str(ImuStatus status);
 

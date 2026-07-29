@@ -70,12 +70,56 @@ typedef struct {
 
 // ! ========================= 接 口 函 数 声 明 ========================= ! //
 
+/**
+ * @brief pid_init 接口函数
+ * @param self 对象实例指针
+ * @param mode 工作模式
+ * @param features 参数值
+ */
 void pid_init(Pid* self, PidMode mode, PidFeature features);
+/**
+ * @brief pid_init_cfg 接口函数
+ * @param self 对象实例指针
+ * @param cfg 配置结构体指针
+ */
 void pid_init_cfg(Pid* self, const PidConfig* cfg);
+/**
+ * @brief pid_set_gains 接口函数
+ * @param self 对象实例指针
+ * @param kp 参数值
+ * @param ki 参数值
+ * @param kd 参数值
+ */
 void pid_set_gains(Pid* self, float kp, float ki, float kd);
+/**
+ * @brief pid_set_params 接口函数
+ * @param self 对象实例指针
+ * @param max_out 参数值
+ * @param integral_separation 参数值
+ * @param dead_band 参数值
+ * @param diff_filter_alpha 参数值
+ * @param output_max_rate 参数值
+ */
 void pid_set_params(Pid* self, float max_out, float integral_separation, float dead_band, float diff_filter_alpha, float output_max_rate);
+/**
+ * @brief pid_set_feedforward 接口函数
+ * @param self 对象实例指针
+ * @param ff_value 参数值
+ */
 void pid_set_feedforward(Pid* self, float ff_value);
+/**
+ * @brief pid_calculate 接口函数
+ * @param self 对象实例指针
+ * @param setpoint 参数值
+ * @param measurement 参数值
+ * @param dt_s 周期时间，单位 s
+ * @return 返回值
+ */
 float pid_calculate(Pid* self, float setpoint, float measurement, float dt_s);
+/**
+ * @brief pid_reset 接口函数
+ * @param self 对象实例指针
+ */
 void pid_reset(Pid* self);
 
 #define pid_create(name) static Pid name = { 0 }

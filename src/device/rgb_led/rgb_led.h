@@ -112,7 +112,7 @@ RgbLedStatus rgb_led_init(const RgbLedConfig* config);
 /**
  * @brief 状态码转字符串
  * @param status RGB LED 状态码
- * @return 状态码名称字符串
+ * @return 字符串指针
  */
 const char* rgb_led_status_str(RgbLedStatus status);
 

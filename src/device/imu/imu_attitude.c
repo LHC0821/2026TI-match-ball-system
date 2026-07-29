@@ -11,22 +11,115 @@
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief imu_attitude_wrap_pi 内部辅助函数
+ * @param angle 参数值
+ * @return 返回值
+ */
 static float imu_attitude_wrap_pi(float angle);
+/**
+ * @brief imu_attitude_acc_norm 内部辅助函数
+ * @param acc 参数值
+ * @return 返回值
+ */
 static float imu_attitude_acc_norm(const ImuAcc* acc);
+/**
+ * @brief imu_attitude_acc_is_trusted 内部辅助函数
+ * @param attitude 参数值
+ * @param acc 参数值
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool imu_attitude_acc_is_trusted(const ImuAttitude* attitude, const ImuAcc* acc);
+/**
+ * @brief imu_attitude_acc_can_fuse 内部辅助函数
+ * @param attitude 参数值
+ * @param sample 样本数据指针
+ * @param acc_norm 参数值
+ * @param acc_age_us 参数值
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool imu_attitude_acc_can_fuse(const ImuAttitude* attitude, const ImuSample* sample, float* acc_norm, uint32_t* acc_age_us);
+/**
+ * @brief imu_attitude_quat_normalize 内部辅助函数
+ * @param quat 参数值
+ */
 static void imu_attitude_quat_normalize(ImuQuat* quat);
+/**
+ * @brief imu_attitude_quat_from_angle 内部辅助函数
+ * @param quat 参数值
+ * @param angle 参数值
+ */
 static void imu_attitude_quat_from_angle(ImuQuat* quat, const ImuAngle* angle);
+/**
+ * @brief imu_attitude_angle_from_quat 内部辅助函数
+ * @param angle 参数值
+ * @param quat 参数值
+ */
 static void imu_attitude_angle_from_quat(ImuAngle* angle, const ImuQuat* quat);
+/**
+ * @brief imu_attitude_update_angle_by_acc 内部辅助函数
+ * @param attitude 参数值
+ * @param acc 参数值
+ * @param reset_yaw 参数值
+ */
 static void imu_attitude_update_angle_by_acc(ImuAttitude* attitude, const ImuAcc* acc, bool reset_yaw);
+/**
+ * @brief imu_attitude_integrate_calibrating_yaw 内部辅助函数
+ * @param attitude 参数值
+ * @param sample 样本数据指针
+ */
 static void imu_attitude_integrate_calibrating_yaw(ImuAttitude* attitude, const ImuSample* sample);
+/**
+ * @brief imu_attitude_reset_calibration 内部辅助函数
+ * @param attitude 参数值
+ */
 static void imu_attitude_reset_calibration(ImuAttitude* attitude);
+/**
+ * @brief imu_attitude_calibrate_gyro 内部辅助函数
+ * @param attitude 参数值
+ * @param sample 样本数据指针
+ * @return 状态码
+ */
 static ImuAttitudeStatus imu_attitude_calibrate_gyro(ImuAttitude* attitude, const ImuSample* sample);
+/**
+ * @brief imu_attitude_get_temp_comp 内部辅助函数
+ * @param attitude 参数值
+ * @param sample 样本数据指针
+ * @return 返回值
+ */
 static ImuGyro imu_attitude_get_temp_comp(const ImuAttitude* attitude, const ImuSample* sample);
+/**
+ * @brief imu_attitude_get_z_bias_offset 内部辅助函数
+ * @param attitude 参数值
+ * @return 返回值
+ */
 static float imu_attitude_get_z_bias_offset(const ImuAttitude* attitude);
+/**
+ * @brief imu_attitude_z_bias_model_enabled 内部辅助函数
+ * @param attitude 参数值
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool imu_attitude_z_bias_model_enabled(const ImuAttitude* attitude);
+/**
+ * @brief imu_attitude_get_corrected_gyro 内部辅助函数
+ * @param attitude 参数值
+ * @param sample 样本数据指针
+ * @return 返回值
+ */
 static ImuGyro imu_attitude_get_corrected_gyro(ImuAttitude* attitude, const ImuSample* sample);
+/**
+ * @brief imu_attitude_update_complementary 内部辅助函数
+ * @param attitude 参数值
+ * @param sample 样本数据指针
+ * @param dt 参数值
+ */
 static void imu_attitude_update_complementary(ImuAttitude* attitude, const ImuSample* sample, float dt);
+/**
+ * @brief imu_attitude_update_mahony 内部辅助函数
+ * @param attitude 参数值
+ * @param sample 样本数据指针
+ * @param dt 参数值
+ */
 static void imu_attitude_update_mahony(ImuAttitude* attitude, const ImuSample* sample, float dt);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

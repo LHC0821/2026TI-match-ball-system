@@ -27,9 +27,23 @@ static uint16_t s_log_tick = 0u;
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief app_runtime_send_status 内部辅助函数
+ */
 static void app_runtime_send_status(void);
+/**
+ * @brief app_runtime_update_rgb 内部辅助函数
+ */
 static void app_runtime_update_rgb(void);
+/**
+ * @brief app_runtime_log_status 内部辅助函数
+ */
 static void app_runtime_log_status(void);
+/**
+ * @brief app_runtime_make_status_flags 内部辅助函数
+ * @param status 状态值
+ * @return 返回值
+ */
 static uint8_t app_runtime_make_status_flags(const BalanceStatus* status);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

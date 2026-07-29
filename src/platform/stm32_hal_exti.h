@@ -19,6 +19,9 @@
  * @brief STM32 HAL EXTI 抽象层状态码
  */
 #define X(name, str) STM32_HAL_EXTI_##name,
+/**
+ * @brief STM32HalExtiStatus 枚举类型
+ */
 typedef enum {
     STM32_HAL_EXTI_STATUS_TABLE
 } STM32HalExtiStatus;

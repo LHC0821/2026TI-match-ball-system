@@ -48,16 +48,64 @@ static VisionCommsStats s_stats = { 0 };
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief vision_comms_now_ms 内部辅助函数
+ * @return 返回值
+ */
 static uint32_t vision_comms_now_ms(void);
+/**
+ * @brief vision_comms_next_seq 内部辅助函数
+ * @return 返回值
+ */
 static uint8_t vision_comms_next_seq(void);
+/**
+ * @brief vision_comms_queue_read 内部辅助函数
+ * @param data 数据缓冲区指针
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool vision_comms_queue_read(uint8_t* data);
+/**
+ * @brief vision_comms_send_frame 内部辅助函数
+ * @param msg_id 消息 ID
+ * @param seq 帧序号
+ * @param flags 帧标志位
+ * @param payload 负载数据指针
+ * @param payload_len 负载长度
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool vision_comms_send_frame(uint8_t msg_id, uint8_t seq, uint8_t flags,
                                     const uint8_t* payload, uint16_t payload_len);
+/**
+ * @brief vision_comms_send_ack 内部辅助函数
+ * @param msg_id 消息 ID
+ * @param seq 帧序号
+ * @param status 状态值
+ */
 static void vision_comms_send_ack(uint8_t msg_id, uint8_t seq, uint8_t status);
+/**
+ * @brief vision_comms_process_parser 内部辅助函数
+ */
 static void vision_comms_process_parser(void);
+/**
+ * @brief vision_comms_process_frame 内部辅助函数
+ * @param body 帧体缓冲区
+ * @param body_len 帧体长度
+ */
 static void vision_comms_process_frame(const uint8_t* body, uint16_t body_len);
+/**
+ * @brief vision_comms_handle_heartbeat 内部辅助函数
+ * @param frame 参数值
+ */
 static void vision_comms_handle_heartbeat(const BinaryFrameView* frame);
+/**
+ * @brief vision_comms_handle_ball 内部辅助函数
+ * @param frame 参数值
+ */
 static void vision_comms_handle_ball(const BinaryFrameView* frame);
+/**
+ * @brief vision_comms_handle_command 内部辅助函数
+ * @param frame 参数值
+ */
 static void vision_comms_handle_command(const BinaryFrameView* frame);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

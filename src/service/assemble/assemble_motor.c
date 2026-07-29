@@ -31,7 +31,21 @@ static BusMotorPortOps s_motor_ops = {
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief assemble_motor_can_send 内部辅助函数
+ * @param id 设备或协议 ID
+ * @param data 数据缓冲区指针
+ * @param len 数据长度
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool assemble_motor_can_send(uint32_t id, const uint8_t* data, uint8_t len);
+/**
+ * @brief assemble_motor_can_rx 内部辅助函数
+ * @param hcan FDCAN 句柄指针
+ * @param header 参数值
+ * @param data 数据缓冲区指针
+ * @param user 用户上下文指针
+ */
 static void assemble_motor_can_rx(FDCAN_HandleTypeDef* hcan,
                                   const FDCAN_RxHeaderTypeDef* header,
                                   const uint8_t data[8],

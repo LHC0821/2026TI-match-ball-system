@@ -16,6 +16,10 @@ static const RgbLedPortOps rgb_ops = {
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief rgb_led_write_complete_callback 内部辅助函数
+ * @param hspi SPI 句柄指针
+ */
 static void rgb_led_write_complete_callback(SPI_HandleTypeDef* hspi);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

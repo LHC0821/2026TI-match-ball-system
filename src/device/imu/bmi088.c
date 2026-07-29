@@ -84,73 +84,344 @@ typedef enum {
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief bmi088_init_async 内部辅助函数
+ * @param config 配置结构体指针
+ * @return 状态码
+ */
 static ImuStatus bmi088_init_async(const void* config);
+/**
+ * @brief bmi088_init_blocking 内部辅助函数
+ * @param config 配置结构体指针
+ * @return 状态码
+ */
 static ImuStatus bmi088_init_blocking(const void* config);
+/**
+ * @brief bmi088_init_common 内部辅助函数
+ * @param config 配置结构体指针
+ * @param require_async_ops 参数值
+ * @return 状态码
+ */
 static ImuStatus bmi088_init_common(const void* config, bool require_async_ops);
+/**
+ * @brief bmi088_update 内部辅助函数
+ * @return 状态码
+ */
 static ImuStatus bmi088_update(void);
+/**
+ * @brief bmi088_blocking_update 内部辅助函数
+ * @return 状态码
+ */
 static ImuStatus bmi088_blocking_update(void);
+/**
+ * @brief bmi088_get_acc 内部辅助函数
+ * @return 返回值
+ */
 static ImuAcc bmi088_get_acc(void);
+/**
+ * @brief bmi088_get_gyro 内部辅助函数
+ * @return 返回值
+ */
 static ImuGyro bmi088_get_gyro(void);
+/**
+ * @brief bmi088_get_gyro_bias 内部辅助函数
+ * @return 返回值
+ */
 static ImuGyro bmi088_get_gyro_bias(void);
+/**
+ * @brief bmi088_get_gyro_corrected 内部辅助函数
+ * @return 返回值
+ */
 static ImuGyro bmi088_get_gyro_corrected(void);
+/**
+ * @brief bmi088_get_angle 内部辅助函数
+ * @return 返回值
+ */
 static ImuAngle bmi088_get_angle(void);
+/**
+ * @brief bmi088_get_sample 内部辅助函数
+ * @param sample 样本数据指针
+ * @return 状态码
+ */
 static ImuStatus bmi088_get_sample(ImuSample* sample);
+/**
+ * @brief bmi088_status_str 内部辅助函数
+ * @param status 状态值
+ * @return 字符串指针
+ */
 static const char* bmi088_status_str(ImuStatus status);
 
+/**
+ * @brief bmi088_gpio_init 内部辅助函数
+ */
 static void bmi088_gpio_init(void);
+/**
+ * @brief bmi088_com_init 内部辅助函数
+ */
 static void bmi088_com_init(void);
+/**
+ * @brief bmi088_delay_ms 内部辅助函数
+ * @param ms 时间，单位 ms
+ */
 static void bmi088_delay_ms(uint16_t ms);
+/**
+ * @brief bmi088_delay_us 内部辅助函数
+ * @param us 时间，单位 us
+ */
 static void bmi088_delay_us(uint16_t us);
+/**
+ * @brief bmi088_accel_cs_low 内部辅助函数
+ */
 static void bmi088_accel_cs_low(void);
+/**
+ * @brief bmi088_accel_cs_high 内部辅助函数
+ */
 static void bmi088_accel_cs_high(void);
+/**
+ * @brief bmi088_gyro_cs_low 内部辅助函数
+ */
 static void bmi088_gyro_cs_low(void);
+/**
+ * @brief bmi088_gyro_cs_high 内部辅助函数
+ */
 static void bmi088_gyro_cs_high(void);
+/**
+ * @brief bmi088_read_write_byte 内部辅助函数
+ * @param tx_data 参数值
+ * @return 返回值
+ */
 static uint8_t bmi088_read_write_byte(uint8_t tx_data);
+/**
+ * @brief bmi088_get_spi_handle 内部辅助函数
+ * @return 结果指针
+ */
 static void* bmi088_get_spi_handle(void);
+/**
+ * @brief bmi088_spi_transmit_receive_dma 内部辅助函数
+ * @param tx_data 参数值
+ * @param rx_data 参数值
+ * @param len 数据长度
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool bmi088_spi_transmit_receive_dma(uint8_t* tx_data, uint8_t* rx_data, uint16_t len);
+/**
+ * @brief bmi088_now_ms 内部辅助函数
+ * @return 返回值
+ */
 static uint32_t bmi088_now_ms(void);
+/**
+ * @brief bmi088_now_us 内部辅助函数
+ * @return 返回值
+ */
 static uint32_t bmi088_now_us(void);
+/**
+ * @brief bmi088_config_is_valid 内部辅助函数
+ * @param config 配置结构体指针
+ * @param require_async_ops 参数值
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool bmi088_config_is_valid(const Bmi088Config* config, bool require_async_ops);
+/**
+ * @brief bmi088_attitude_init 内部辅助函数
+ * @param config 配置结构体指针
+ */
 static void bmi088_attitude_init(const ImuAttitudeConfig* config);
+/**
+ * @brief bmi088_attitude_update 内部辅助函数
+ */
 static void bmi088_attitude_update(void);
 
+/**
+ * @brief bmi088_device_init 内部辅助函数
+ * @return 返回值
+ */
 static Bmi088Error bmi088_device_init(void);
+/**
+ * @brief bmi088_accel_init 内部辅助函数
+ * @return 返回值
+ */
 static Bmi088Error bmi088_accel_init(void);
+/**
+ * @brief bmi088_gyro_init 内部辅助函数
+ * @return 返回值
+ */
 static Bmi088Error bmi088_gyro_init(void);
+/**
+ * @brief bmi088_read_gyro_raw 内部辅助函数
+ * @param gyro 参数值
+ */
 static void bmi088_read_gyro_raw(float gyro[3]);
+/**
+ * @brief bmi088_read_accel_raw 内部辅助函数
+ * @param accel 参数值
+ */
 static void bmi088_read_accel_raw(float accel[3]);
+/**
+ * @brief bmi088_read_temp_raw 内部辅助函数
+ * @param temperature 参数值
+ */
 static void bmi088_read_temp_raw(float* temperature);
+/**
+ * @brief bmi088_async_init 内部辅助函数
+ */
 static void bmi088_async_init(void);
+/**
+ * @brief bmi088_notify_gyro_data_ready 内部辅助函数
+ */
 static void bmi088_notify_gyro_data_ready(void);
+/**
+ * @brief bmi088_notify_accel_data_ready 内部辅助函数
+ */
 static void bmi088_notify_accel_data_ready(void);
+/**
+ * @brief bmi088_async_poll 内部辅助函数
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool bmi088_async_poll(void);
+/**
+ * @brief bmi088_async_get_gyro 内部辅助函数
+ * @param gyro 参数值
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool bmi088_async_get_gyro(float gyro[3]);
+/**
+ * @brief bmi088_async_get_accel 内部辅助函数
+ * @param accel 参数值
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool bmi088_async_get_accel(float accel[3]);
+/**
+ * @brief bmi088_spi_txrx_complete 内部辅助函数
+ * @param spi_handle 参数值
+ */
 static void bmi088_spi_txrx_complete(void* spi_handle);
+/**
+ * @brief bmi088_spi_error 内部辅助函数
+ * @param spi_handle 参数值
+ */
 static void bmi088_spi_error(void* spi_handle);
 
+/**
+ * @brief bmi088_write_single_reg 内部辅助函数
+ * @param reg 参数值
+ * @param data 数据缓冲区指针
+ */
 static void bmi088_write_single_reg(uint8_t reg, uint8_t data);
+/**
+ * @brief bmi088_read_single_reg 内部辅助函数
+ * @param reg 参数值
+ * @param return_data 参数值
+ */
 static void bmi088_read_single_reg(uint8_t reg, uint8_t* return_data);
+/**
+ * @brief bmi088_accel_write_single_reg 内部辅助函数
+ * @param reg 参数值
+ * @param data 数据缓冲区指针
+ */
 static void bmi088_accel_write_single_reg(uint8_t reg, uint8_t data);
+/**
+ * @brief bmi088_accel_read_single_reg 内部辅助函数
+ * @param reg 参数值
+ * @param data 数据缓冲区指针
+ */
 static void bmi088_accel_read_single_reg(uint8_t reg, uint8_t* data);
+/**
+ * @brief bmi088_accel_read_burst 内部辅助函数
+ * @param reg 参数值
+ * @param buf 参数值
+ * @param len 数据长度
+ */
 static void bmi088_accel_read_burst(uint8_t reg, uint8_t* buf, uint8_t len);
+/**
+ * @brief bmi088_gyro_write_single_reg 内部辅助函数
+ * @param reg 参数值
+ * @param data 数据缓冲区指针
+ */
 static void bmi088_gyro_write_single_reg(uint8_t reg, uint8_t data);
+/**
+ * @brief bmi088_gyro_read_single_reg 内部辅助函数
+ * @param reg 参数值
+ * @param data 数据缓冲区指针
+ */
 static void bmi088_gyro_read_single_reg(uint8_t reg, uint8_t* data);
+/**
+ * @brief bmi088_release_all_cs 内部辅助函数
+ */
 static void bmi088_release_all_cs(void);
+/**
+ * @brief bmi088_start_gyro_dma 内部辅助函数
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool bmi088_start_gyro_dma(void);
+/**
+ * @brief bmi088_start_accel_dma 内部辅助函数
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool bmi088_start_accel_dma(void);
+/**
+ * @brief bmi088_parse_gyro_dma_buffer 内部辅助函数
+ */
 static void bmi088_parse_gyro_dma_buffer(void);
+/**
+ * @brief bmi088_parse_accel_dma_buffer 内部辅助函数
+ */
 static void bmi088_parse_accel_dma_buffer(void);
+/**
+ * @brief bmi088_copy_vector3 内部辅助函数
+ * @param dst 参数值
+ * @param src 参数值
+ */
 static void bmi088_copy_vector3(float dst[3], const float src[3]);
+/**
+ * @brief bmi088_dma_prepare_txrx 内部辅助函数
+ * @param len 数据长度
+ */
 static void bmi088_dma_prepare_txrx(uint16_t len);
+/**
+ * @brief bmi088_dma_maintain_before_start 内部辅助函数
+ * @param len 数据长度
+ */
 static void bmi088_dma_maintain_before_start(uint16_t len);
+/**
+ * @brief bmi088_dma_maintain_after_finish 内部辅助函数
+ * @param len 数据长度
+ */
 static void bmi088_dma_maintain_after_finish(uint16_t len);
+/**
+ * @brief bmi088_update_temp_cache 内部辅助函数
+ * @param now_us 参数值
+ * @param sample_flags 参数值
+ */
 static void bmi088_update_temp_cache(uint32_t now_us, uint8_t* sample_flags);
+/**
+ * @brief bmi088_acc_norm 内部辅助函数
+ * @param acc 参数值
+ * @return 返回值
+ */
 static float bmi088_acc_norm(const float acc[3]);
+/**
+ * @brief bmi088_acc_sample_is_reasonable 内部辅助函数
+ * @param acc 参数值
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool bmi088_acc_sample_is_reasonable(const float acc[3]);
+/**
+ * @brief bmi088_calc_gyro_temp_comp 内部辅助函数
+ * @return 返回值
+ */
 static ImuGyro bmi088_calc_gyro_temp_comp(void);
 
+/**
+ * @brief bmi088_make_acc 内部辅助函数
+ * @param acc 参数值
+ * @return 返回值
+ */
 static ImuAcc bmi088_make_acc(const float acc[3]);
+/**
+ * @brief bmi088_make_gyro 内部辅助函数
+ * @param gyro 参数值
+ * @return 返回值
+ */
 static ImuGyro bmi088_make_gyro(const float gyro[3]);
 
 // ! ========================= 变 量 声 明 ========================= ! //

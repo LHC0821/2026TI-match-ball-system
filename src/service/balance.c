@@ -62,22 +62,101 @@ static volatile uint8_t s_motor_rx_error = 0u;
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief balance_now_ms 内部辅助函数
+ * @return 返回值
+ */
 static uint32_t balance_now_ms(void);
+/**
+ * @brief balance_clamp 内部辅助函数
+ * @param value 数值
+ * @param min 参数值
+ * @param max 参数值
+ * @return 返回值
+ */
 static float balance_clamp(float value, float min, float max);
+/**
+ * @brief balance_abs 内部辅助函数
+ * @param value 数值
+ * @return 返回值
+ */
 static float balance_abs(float value);
+/**
+ * @brief balance_lpf 内部辅助函数
+ * @param input 参数值
+ * @param output 参数值
+ * @param tau_s 参数值
+ * @param dt_s 周期时间，单位 s
+ * @return 返回值
+ */
 static float balance_lpf(float input, float output, float tau_s, float dt_s);
+/**
+ * @brief balance_get_acc_axis 内部辅助函数
+ * @param acc 参数值
+ * @return 返回值
+ */
 static float balance_get_acc_axis(const ImuAcc* acc);
+/**
+ * @brief balance_value_valid 内部辅助函数
+ * @param value 数值
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool balance_value_valid(float value);
+/**
+ * @brief balance_motor_fault 内部辅助函数
+ * @param error_code 参数值
+ * @return true 表示成功或条件成立，false 表示失败或条件不成立
+ */
 static bool balance_motor_fault(uint8_t error_code);
+/**
+ * @brief balance_set_state 内部辅助函数
+ * @param state 状态枚举值
+ */
 static void balance_set_state(BalanceState state);
+/**
+ * @brief balance_raise_fault 内部辅助函数
+ * @param fault 参数值
+ */
 static void balance_raise_fault(BalanceFault fault);
+/**
+ * @brief balance_clear_fault 内部辅助函数
+ */
 static void balance_clear_fault(void);
+/**
+ * @brief balance_update_motor_feedback 内部辅助函数
+ * @param now_ms 参数值
+ */
 static void balance_update_motor_feedback(uint32_t now_ms);
+/**
+ * @brief balance_update_imu 内部辅助函数
+ * @param now_ms 参数值
+ * @param dt_s 周期时间，单位 s
+ */
 static void balance_update_imu(uint32_t now_ms, float dt_s);
+/**
+ * @brief balance_update_online 内部辅助函数
+ * @param now_ms 参数值
+ */
 static void balance_update_online(uint32_t now_ms);
+/**
+ * @brief balance_update_sweep 内部辅助函数
+ * @param now_ms 参数值
+ */
 static void balance_update_sweep(uint32_t now_ms);
+/**
+ * @brief balance_update_control 内部辅助函数
+ * @param dt_s 周期时间，单位 s
+ */
 static void balance_update_control(float dt_s);
+/**
+ * @brief balance_send_motor 内部辅助函数
+ * @param now_ms 参数值
+ */
 static void balance_send_motor(uint32_t now_ms);
+/**
+ * @brief balance_enable_motor 内部辅助函数
+ * @param now_ms 参数值
+ */
 static void balance_enable_motor(uint32_t now_ms);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

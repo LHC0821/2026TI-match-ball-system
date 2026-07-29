@@ -9,7 +9,14 @@
 
 // ! ========================= 接 口 函 数 声 明 ========================= ! //
 
+/**
+ * @brief dwt_init 接口函数
+ */
 void dwt_init(void);
+/**
+ * @brief dwt_get_us 接口函数
+ * @return 返回值
+ */
 uint32_t dwt_get_us(void);
 
 #endif

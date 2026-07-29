@@ -6,8 +6,24 @@
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
+/**
+ * @brief binary_frame_crc16_update 内部辅助函数
+ * @param crc 参数值
+ * @param data 数据缓冲区指针
+ * @return 返回值
+ */
 static uint16_t binary_frame_crc16_update(uint16_t crc, uint8_t data);
+/**
+ * @brief binary_frame_round_clamp_i32 内部辅助函数
+ * @param value 数值
+ * @return 返回值
+ */
 static int32_t binary_frame_round_clamp_i32(float value);
+/**
+ * @brief binary_frame_round_clamp_i16 内部辅助函数
+ * @param value 数值
+ * @return 返回值
+ */
 static int16_t binary_frame_round_clamp_i16(float value);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //

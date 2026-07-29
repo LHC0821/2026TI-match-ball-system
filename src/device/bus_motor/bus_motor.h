@@ -137,7 +137,7 @@ BusMotorStatus bus_motor_init(const BusMotorConfig* config);
 /**
  * @brief 状态码转字符串
  * @param status 电机状态码
- * @return 状态码名称字符串
+ * @return 字符串指针
  */
 const char* bus_motor_status_str(BusMotorStatus status);
 

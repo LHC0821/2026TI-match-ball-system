@@ -76,32 +76,192 @@ typedef struct {
     Matrix name; \
     matrix_identity(&name, size, name##_data)
 
+/**
+ * @brief matrix 接口函数
+ * @param m 参数值
+ * @param row 参数值
+ * @param col 参数值
+ * @param data 数据缓冲区指针
+ * @return 状态码
+ */
 MatrixErrorCode matrix(Matrix* const m, unsigned int row, unsigned int col, float* data);
+/**
+ * @brief matrix_identity 接口函数
+ * @param m 参数值
+ * @param size 参数值
+ * @param data 数据缓冲区指针
+ * @return 状态码
+ */
 MatrixErrorCode matrix_identity(Matrix* const m, unsigned int size, float* data);
+/**
+ * @brief matrix_get 接口函数
+ * @param m 参数值
+ * @param r 参数值
+ * @param c 参数值
+ * @param value 数值
+ * @return 状态码
+ */
 MatrixErrorCode matrix_get(const Matrix* const m, unsigned int r, unsigned int c, float* value);
+/**
+ * @brief matrix_set 接口函数
+ * @param m 参数值
+ * @param r 参数值
+ * @param c 参数值
+ * @param value 数值
+ * @return 状态码
+ */
 MatrixErrorCode matrix_set(Matrix* const m, unsigned int r, unsigned int c, float value);
+/**
+ * @brief matrix_copy 接口函数
+ * @param m 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode matrix_copy(const Matrix* const m, Matrix* const out);
 
+/**
+ * @brief matrix_add 接口函数
+ * @param A 参数值
+ * @param B 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode matrix_add(const Matrix* const A, const Matrix* const B, Matrix* const out);
+/**
+ * @brief matrix_sub 接口函数
+ * @param A 参数值
+ * @param B 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode matrix_sub(const Matrix* const A, const Matrix* const B, Matrix* const out);
+/**
+ * @brief matrix_scalar_mul 接口函数
+ * @param m 参数值
+ * @param scalar 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode matrix_scalar_mul(const Matrix* const m, float scalar, Matrix* const out);
+/**
+ * @brief matrix_mul 接口函数
+ * @param A 参数值
+ * @param B 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode matrix_mul(const Matrix* const A, const Matrix* const B, Matrix* const out);
+/**
+ * @brief matrix_transpose 接口函数
+ * @param m 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode matrix_transpose(const Matrix* const m, Matrix* const out);
+/**
+ * @brief matrix_to_upper_triangular 接口函数
+ * @param m 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode matrix_to_upper_triangular(const Matrix* const m, Matrix* const out);
+/**
+ * @brief matrix_to_lower_triangular 接口函数
+ * @param m 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode matrix_to_lower_triangular(const Matrix* const m, Matrix* const out);
+/**
+ * @brief matrix_determinant 接口函数
+ * @param m 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode matrix_determinant(const Matrix* const m, float* out);
+/**
+ * @brief matrix_inverse 接口函数
+ * @param m 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode matrix_inverse(const Matrix* const m, Matrix* const out);
 
+/**
+ * @brief quat_normalize 接口函数
+ * @param quat 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode quat_normalize(const float quat[4], float out[4]);
+/**
+ * @brief matrix_to_quat 接口函数
+ * @param R 参数值
+ * @param quat 参数值
+ * @return 状态码
+ */
 MatrixErrorCode matrix_to_quat(const Matrix* const R, float quat[4]);
+/**
+ * @brief quat_to_matrix 接口函数
+ * @param quat 参数值
+ * @param R 参数值
+ * @return 状态码
+ */
 MatrixErrorCode quat_to_matrix(const float quat[4], Matrix* const R);
 
+/**
+ * @brief vec3_add 接口函数
+ * @param a 参数值
+ * @param b 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode vec3_add(const Vector3* const a, const Vector3* const b, Vector3* out);
+/**
+ * @brief vec3_sub 接口函数
+ * @param a 参数值
+ * @param b 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode vec3_sub(const Vector3* const a, const Vector3* const b, Vector3* out);
+/**
+ * @brief vec3_scalar_mul 接口函数
+ * @param v 参数值
+ * @param scalar 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode vec3_scalar_mul(const Vector3* const v, float scalar, Vector3* out);
+/**
+ * @brief vec3_norm 接口函数
+ * @param v 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode vec3_norm(const Vector3* const v, float* out);
+/**
+ * @brief vec3_normalize 接口函数
+ * @param v 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode vec3_normalize(const Vector3* const v, Vector3* out);
+/**
+ * @brief vec3_dot 接口函数
+ * @param a 参数值
+ * @param b 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode vec3_dot(const Vector3* const a, const Vector3* const b, float* out);
+/**
+ * @brief vec3_cross 接口函数
+ * @param a 参数值
+ * @param b 参数值
+ * @param out 输出缓冲区或输出参数
+ * @return 状态码
+ */
 MatrixErrorCode vec3_cross(const Vector3* const a, const Vector3* const b, Vector3* out);
 
 #endif
