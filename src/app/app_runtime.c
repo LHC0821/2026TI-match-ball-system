@@ -189,23 +189,32 @@ static void app_runtime_log_status(void) {
     (void)balance_get_tune(&config);
     vision_comms_get_stats(&stats);
     log_info("--------------------");
-    log_info("BAL state=%s en=%u loop=%s mon=%u men=%u err=0x%X fault=0x%08lX vrx=%lu vcrc=%lu",
+    log_info("[01 状态 STATE] 模式=%s 总控=%s 闭环=%s MERR=0x%X FAULT=0x%08lX",
              balance_state_str(status->state),
-             status->enable_requested ? 1u : 0u,
-             status->ball_loop_closed ? "CLOSED" : "OPEN",
-             status->motor_online ? 1u : 0u,
-             status->motor_enabled ? 1u : 0u,
+             status->enable_requested ? "开" : "关",
+             status->ball_loop_closed ? "闭合" : "断开",
              status->motor_error,
-             (unsigned long)status->fault_flags,
+             (unsigned long)status->fault_flags);
+    log_info("[02 在线 ONLINE] IMU=%s MOTOR=%s/%s VISION=%s/%s RX=%lu CRC=%lu",
+             status->imu_online ? "在线" : "离线",
+             status->motor_online ? "在线" : "离线",
+             status->motor_enabled ? "使能" : "失能",
+             status->vision_online ? "在线" : "离线",
+             status->vision_valid ? "有效" : "无效",
              (unsigned long)stats.rx_frame_count,
              (unsigned long)stats.rx_bad_crc_count);
-    log_info("IMU pitch_raw=%.4f pitch_rel=%.4f acc_raw=%.4f acc_linear=%.4f acc_filt=%.4f",
+    log_info("[03 通道 CTRL] LEVEL=%s ACC=%s VISION=%s 掩码=0x%02X",
+             (status->ctrl_mask & BALANCE_CTRL_LEVEL) != 0u ? "开" : "关",
+             (status->ctrl_mask & BALANCE_CTRL_ACC) != 0u ? "开" : "关",
+             (status->ctrl_mask & BALANCE_CTRL_VISION) != 0u ? "开" : "关",
+             status->ctrl_mask);
+    log_info("[04 姿态 IMU] pitch原=%.4f rel=%.4f acc原=%.4f lin=%.4f filt=%.4f",
              status->pitch_raw_rad,
              status->pitch_rad,
              status->acc_raw_m_s2,
              status->acc_linear_m_s2,
              status->acc_m_s2);
-    log_info("VISION raw=%.4f filt=%.4f vel=%.4f p=%.4f i=%.4f d=%.4f out=%.4f",
+    log_info("[05 视觉 VISION] offset原=%.4f filt=%.4f vel=%.4f P=%.4f I=%.4f D=%.4f out=%.4f",
              status->vision_offset_raw_m,
              status->vision_offset_m,
              status->vision_offset_vel_m_s,
@@ -213,15 +222,14 @@ static void app_runtime_log_status(void) {
              status->vision_i_rad,
              status->vision_d_rad,
              status->vision_angle_rad);
-    log_info("CTRL mask=0x%02X level=%.4f acc=%.4f vision=%.4f cmd_raw=%.4f cmd=%.4f sat=%u",
-             status->ctrl_mask,
+    log_info("[06 输出 OUTPUT] LEVEL=%.4f ACC=%.4f VIS=%.4f raw=%.4f cmd=%.4f SAT=%s",
              status->level_angle_rad,
              status->acc_angle_rad,
              status->vision_angle_rad,
              status->motor_cmd_raw_rad,
              status->motor_cmd_rad,
-             status->motor_cmd_saturated ? 1u : 0u);
-    log_info("MIT pos_des=%.4f pos_err=%.4f vel_des=%.4f vel=%.4f kp=%.4f kd=%.4f tor=%.4f",
+             status->motor_cmd_saturated ? "是" : "否");
+    log_info("[07 电机 MIT] pos=%.4f err=%.4f vel目标=%.4f 实际=%.4f KP=%.4f KD=%.4f tor=%.4f",
              status->motor_cmd_rad,
              status->motor_cmd_rad - status->motor_pos_rad,
              config.motor_vel_rad_s,
@@ -229,7 +237,7 @@ static void app_runtime_log_status(void) {
              config.motor_kp,
              config.motor_kd,
              status->motor_tor_ff_nm);
-    log_info("TUNE state=%s seq=%u rx=%lu apply=%lu reject=%lu overflow=%lu",
+    log_info("[08 调参 TUNE] 状态=%s 序号=%u RX=%lu 应用=%lu 拒绝=%lu 溢出=%lu",
              app_tune_state_str(tune->state),
              tune->session_seq,
              (unsigned long)tune->rx_line_count,
