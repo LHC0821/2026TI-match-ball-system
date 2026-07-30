@@ -64,12 +64,12 @@
 /**
  * @brief MIT 模式位置比例系数
  */
-#define APP_CFG_MOTOR_KP 4.0f
+#define APP_CFG_MOTOR_KP 80.0f
 
 /**
  * @brief MIT 模式位置微分系数
  */
-#define APP_CFG_MOTOR_KD 0.04f
+#define APP_CFG_MOTOR_KD 1.05f
 
 /**
  * @brief MIT 模式前馈扭矩，单位 N*m
@@ -166,7 +166,7 @@
 /**
  * @brief 纵向加速度前馈补偿增益
  */
-#define APP_CFG_ACC_GAIN -5.0f
+#define APP_CFG_ACC_GAIN -1.0f
 
 /**
  * @brief 加速度一阶低通时间常数，单位 s
