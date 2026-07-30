@@ -460,7 +460,7 @@ static bool app_tune_valid(const BalanceTuneConfig* config) {
            config->motor_min_rad < config->motor_max_rad &&
            config->motor_zero_rad >= config->motor_min_rad &&
            config->motor_zero_rad <= config->motor_max_rad &&
-           config->motor_speed_rad_s > 0.0f &&
+           config->motor_speed_rad_s >= 0.0f &&
            config->acc_tau_s >= 0.0f &&
            config->vision_tau_s >= 0.0f;
 }

@@ -61,9 +61,9 @@
  *
  * @details
  * MIT 控制帧中的速度字段只由该参数决定；DM-4340 的 kp、kd 和 tor
- * 使用驱动层固定的推荐值
+ * 使用驱动层固定的推荐值; 设置为 0 表示 MIT 位置保持，正数表示速度目标
  */
-#define APP_CFG_MOTOR_SPEED_RAD_S 8.0f
+#define APP_CFG_MOTOR_SPEED_RAD_S 0.0f
 
 /**
  * @brief 控制角到电机方向的符号
@@ -91,6 +91,25 @@
  * @brief 视觉球位偏移方向符号
  */
 #define APP_CFG_BALL_SIGN 1.0f
+
+// ! ========================= 2.3. 电机稳态补偿参数 ========================= ! //
+
+/**
+ * @brief 电机位置外环积分补偿增益，单位 1/s
+ *
+ * @details
+ * MIT 模式本身只有位置比例和速度微分控制，该参数用于补偿减速机构静摩擦造成的稳态位置误差
+ * 设置为 0 表示关闭外环积分补偿
+ */
+#define APP_CFG_MOTOR_POS_I_GAIN 2.0f
+
+/**
+ * @brief 电机位置外环积分补偿最大角度，单位 rad
+ *
+ * @details
+ * 该参数限制积分补偿对 MIT 目标位置的最大修正量，用于限制启动和异常情况下的积分累积
+ */
+#define APP_CFG_MOTOR_POS_I_LIMIT_RAD 0.30f
 
 // ! ========================= 3. 平 衡 补 偿 参 数 ========================= ! //
 
@@ -140,7 +159,7 @@
 /**
  * @brief 纵向加速度前馈补偿增益
  */
-#define APP_CFG_ACC_GAIN -10.0f
+#define APP_CFG_ACC_GAIN -5.0f
 
 /**
  * @brief 加速度一阶低通时间常数，单位 s

@@ -106,6 +106,10 @@ typedef struct {
     float motor_min_rad;
     float motor_max_rad;
     float motor_speed_rad_s;
+    /** @brief 电机位置外环积分补偿增益，单位 1/s */
+    float motor_pos_i_gain;
+    /** @brief 电机位置外环积分补偿最大角度，单位 rad */
+    float motor_pos_i_limit_rad;
     float motor_sign;
 
     BalanceAxis acc_axis;

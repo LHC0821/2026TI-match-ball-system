@@ -5,8 +5,8 @@
 
 // ! ========================= 变 量 声 明 ========================= ! //
 
-#define DM_MOTOR_4340_POS_LIMIT 12.5f
-#define DM_MOTOR_4340_SPD_LIMIT 8.0f
+#define DM_MOTOR_4340_POS_LIMIT 12.5664f
+#define DM_MOTOR_4340_SPD_LIMIT 45.0f
 #define DM_MOTOR_4340_TOR_LIMIT 28.0f
 #define DM_MOTOR_KP_LIMIT 500.0f
 #define DM_MOTOR_KD_LIMIT 5.0f
@@ -752,8 +752,8 @@ static BusMotorStatus dm_motor_send_mit(uint16_t id, const DmMotorSlot* slot) {
 
     pos_bits = dm_motor_f32_to_u16(slot->position, -s_pos_limit, s_pos_limit, 16);
     spd_bits = dm_motor_f32_to_u16(slot->speed, -s_spd_limit, s_spd_limit, 12);
-    kp_bits = dm_motor_f32_to_u16(DM_MOTOR_DEFAULT_KP, 0.0f, DM_MOTOR_KP_LIMIT, 12);
-    kd_bits = dm_motor_f32_to_u16(DM_MOTOR_DEFAULT_KD, 0.0f, DM_MOTOR_KD_LIMIT, 12);
+    kp_bits = dm_motor_f32_to_u16(slot->kp, 0.0f, DM_MOTOR_KP_LIMIT, 12);
+    kd_bits = dm_motor_f32_to_u16(slot->kd, 0.0f, DM_MOTOR_KD_LIMIT, 12);
     tor_bits = dm_motor_f32_to_u16(DM_MOTOR_DEFAULT_TORQUE, -s_tor_limit, s_tor_limit, 12);
 
     data[0] = (uint8_t)(pos_bits >> 8);

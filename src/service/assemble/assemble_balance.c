@@ -22,6 +22,8 @@ SystemStatus assemble_balance(void) {
         .motor_min_rad = APP_CFG_MOTOR_MIN_RAD,
         .motor_max_rad = APP_CFG_MOTOR_MAX_RAD,
         .motor_speed_rad_s = APP_CFG_MOTOR_SPEED_RAD_S,
+        .motor_pos_i_gain = APP_CFG_MOTOR_POS_I_GAIN,
+        .motor_pos_i_limit_rad = APP_CFG_MOTOR_POS_I_LIMIT_RAD,
         .motor_sign = APP_CFG_MOTOR_SIGN,
         .acc_axis = APP_CFG_ACC_AXIS,
         .acc_sign = APP_CFG_ACC_SIGN,

@@ -23,12 +23,12 @@
 /**
  * @brief DM-4340 MIT 模式推荐位置环比例系数
  */
-#define DM_MOTOR_DEFAULT_KP 3.0f
+#define DM_MOTOR_DEFAULT_KP 4.0f
 
 /**
  * @brief DM-4340 MIT 模式推荐位置环微分系数
  */
-#define DM_MOTOR_DEFAULT_KD 0.032f
+#define DM_MOTOR_DEFAULT_KD 0.04f
 
 /**
  * @brief DM-4340 MIT 模式固定前馈扭矩
@@ -83,8 +83,8 @@ BusMotorStatus dm_motor_make_4340_config(DmMotorConfig* config, uint16_t master_
  * @return 电机状态码
  */
 BusMotorStatus dm_motor_parse_feedback_frame(uint32_t frame_id,
-    const uint8_t data[DM_MOTOR_CMD_LEN],
-    BusMotorFeedback* feedback);
+                                             const uint8_t data[DM_MOTOR_CMD_LEN],
+                                             BusMotorFeedback* feedback);
 
 /**
  * @brief 清除指定达妙电机错误
