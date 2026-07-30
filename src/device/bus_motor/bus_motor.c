@@ -148,6 +148,15 @@ BusMotorStatus bus_motor_set_pd(uint16_t id, float kp, float kd) {
     return bus_motor_instance->set_pd(id, kp, kd);
 }
 
+BusMotorStatus bus_motor_set_mit(uint16_t id, float position, float speed,
+                                 float kp, float kd, float torque) {
+    if(bus_motor_instance == 0 || bus_motor_instance->set_mit == 0) {
+        return MOTOR_STATUS_NOT_INITIALIZE;
+    }
+
+    return bus_motor_instance->set_mit(id, position, speed, kp, kd, torque);
+}
+
 /**
  * @brief 主动请求并更新反馈缓存
  */

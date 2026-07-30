@@ -105,6 +105,8 @@ typedef struct {
     BusMotorStatus (*set_pos_vel)(uint16_t id, float position, float speed);    /**< 设定目标位置和速度 */
     BusMotorStatus (*set_tor)(uint16_t id, float torque);                       /**< 设定目标扭矩或前馈，单位 N*m */
     BusMotorStatus (*set_pd)(uint16_t id, float kp, float kd);                  /**< 设定位置环 PD 参数 */
+    BusMotorStatus (*set_mit)(uint16_t id, float position, float speed,
+                              float kp, float kd, float torque);                 /**< 发送一帧完整 MIT 指令 */
     BusMotorStatus (*update_feedback)(uint16_t id, BusMotorFeedback* feedback); /**< 主动请求并更新反馈 */
     float (*get_pos)(uint16_t id);                                              /**< 从本地缓存获取最近位置，单位 rad */
     float (*get_spd)(uint16_t id);                                              /**< 从本地缓存获取最近速度，单位 rad/s */
@@ -211,6 +213,18 @@ BusMotorStatus bus_motor_set_tor(uint16_t id, float torque);
  * @return 电机状态码
  */
 BusMotorStatus bus_motor_set_pd(uint16_t id, float kp, float kd);
+/**
+ * @brief 发送完整 MIT 指令
+ * @param id 电机协议 ID
+ * @param position 目标位置，单位 rad
+ * @param speed 目标速度，单位 rad/s
+ * @param kp 位置比例系数
+ * @param kd 位置微分系数
+ * @param torque 前馈扭矩，单位 N*m
+ * @return 电机状态码
+ */
+BusMotorStatus bus_motor_set_mit(uint16_t id, float position, float speed,
+                                 float kp, float kd, float torque);
 
 /**
  * @brief 主动请求并更新反馈缓存

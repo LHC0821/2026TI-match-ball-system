@@ -117,6 +117,8 @@ static BusMotorStatus dm_motor_set_tor(uint16_t id, float torque);
  * @return 状态码
  */
 static BusMotorStatus dm_motor_set_pd(uint16_t id, float kp, float kd);
+static BusMotorStatus dm_motor_set_mit(uint16_t id, float position, float speed,
+                                       float kp, float kd, float torque);
 /**
  * @brief dm_motor_update_feedback 内部辅助函数
  * @param id 设备或协议 ID
@@ -273,6 +275,7 @@ const BusMotorInterface dm_motor_instance = {
     .set_pos_vel = dm_motor_set_pos_vel,
     .set_tor = dm_motor_set_tor,
     .set_pd = dm_motor_set_pd,
+    .set_mit = dm_motor_set_mit,
     .update_feedback = dm_motor_update_feedback,
     .get_pos = dm_motor_get_pos,
     .get_spd = dm_motor_get_spd,
@@ -482,6 +485,32 @@ static BusMotorStatus dm_motor_set_pd(uint16_t id, float kp, float kd) {
     slot->kp = kp;
     slot->kd = kd;
     return dm_motor_apply_command(id);
+}
+
+/**
+ * @brief 原子更新并发送一帧 MIT 指令
+ */
+static BusMotorStatus dm_motor_set_mit(uint16_t id, float position, float speed,
+                                       float kp, float kd, float torque) {
+    DmMotorSlot* slot = dm_motor_get_slot(id);
+
+    if(slot == 0 || slot->mode != DM_MOTOR_MODE_MIT) {
+        return MOTOR_STATUS_INVALID_PARAM;
+    }
+    if(position < -s_pos_limit || position > s_pos_limit ||
+       speed < -s_spd_limit || speed > s_spd_limit ||
+       kp < 0.0f || kp > DM_MOTOR_KP_LIMIT ||
+       kd < 0.0f || kd > DM_MOTOR_KD_LIMIT ||
+       torque < -s_tor_limit || torque > s_tor_limit) {
+        return MOTOR_STATUS_INVALID_PARAM;
+    }
+
+    slot->position = position;
+    slot->speed = speed;
+    slot->kp = kp;
+    slot->kd = kd;
+    slot->torque = torque;
+    return dm_motor_send_mit(id, slot);
 }
 
 /**

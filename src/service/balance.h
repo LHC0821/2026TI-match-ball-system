@@ -12,9 +12,12 @@
 #include <stdint.h>
 
 /**
- * @brief DM-4340 V3 位置速度指令允许的最高配速，单位 rad/s
+ * @brief DM-4340 V3 MIT 参数范围
  */
-#define BALANCE_MOTOR_SPEED_MAX_RAD_S 10.0f
+#define BALANCE_MOTOR_VEL_MAX_RAD_S 10.0f
+#define BALANCE_MOTOR_KP_MAX 500.0f
+#define BALANCE_MOTOR_KD_MAX 5.0f
+#define BALANCE_MOTOR_TOR_MAX_NM 28.0f
 
 // ! ========================= 接 口 变 量 / Typedef 声 明 ========================= ! //
 
@@ -112,8 +115,10 @@ typedef struct {
     float motor_zero_rad;
     float motor_min_rad;
     float motor_max_rad;
-    /** @brief 每帧位置速度指令固定使用的全程配速，单位 rad/s */
-    float motor_speed_rad_s;
+    float motor_vel_rad_s;
+    float motor_kp;
+    float motor_kd;
+    float motor_tor_nm;
     float motor_sign;
 
     BalanceAxis acc_axis;
@@ -144,8 +149,10 @@ typedef struct {
     float motor_zero_rad;
     float motor_min_rad;
     float motor_max_rad;
-    /** @brief 无线调参设置的位置速度指令全程配速，单位 rad/s */
-    float motor_speed_rad_s;
+    float motor_vel_rad_s;
+    float motor_kp;
+    float motor_kd;
+    float motor_tor_nm;
     float level_gain;
     float acc_gain;
     float acc_tau_s;
@@ -236,6 +243,12 @@ BalanceStatusCode balance_apply_tune(const BalanceTuneConfig* config);
  * @return 状态码
  */
 BalanceStatusCode balance_set_ctrl_mask(uint8_t ctrl_mask);
+/**
+ * @brief 在滚球控制失能时直接设置电机 MIT 目标角度
+ * @param angle_rad 目标角度，单位 rad
+ * @return 状态码
+ */
+BalanceStatusCode balance_set_motor_angle(float angle_rad);
 /**
  * @brief balance_get_status 接口函数
  * @return 结果指针

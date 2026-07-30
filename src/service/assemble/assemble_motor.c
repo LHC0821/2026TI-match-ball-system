@@ -110,14 +110,14 @@ bool assemble_motor_prepare(uint16_t id) {
     }
     delay_ms(20u);
 
-    status = bus_motor.switch_mode(id, DM_MOTOR_MODE_POS_VEL);
+    status = bus_motor.switch_mode(id, DM_MOTOR_MODE_MIT);
     if(status != MOTOR_STATUS_OK) {
-        log_error("MOTOR POS_VEL switch failed: %s",
+        log_error("MOTOR MIT switch failed: %s",
                   bus_motor.status_str(status));
         return false;
     }
 
-    log_info("MOTOR DM-4340 ready: mode=POS_VEL");
+    log_info("MOTOR DM-4340 ready: mode=MIT");
     return true;
 }
 

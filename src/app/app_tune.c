@@ -20,10 +20,6 @@
 // ! ========================= 宏 定 义 声 明 ========================= ! //
 
 #define APP_TUNE_ARG_MAX 3u
-#define APP_TUNE_RESULT_NONE 0u
-#define APP_TUNE_RESULT_OK 1u
-#define APP_TUNE_RESULT_INVALID 2u
-#define APP_TUNE_RESULT_STATE 3u
 
 // ! ========================= 变 量 声 明 ========================= ! //
 
@@ -37,11 +33,8 @@ static uint16_t s_line_len = 0u;
 static bool s_line_drop = false;
 static bool s_initialized = false;
 static BalanceTuneConfig s_pending = { 0 };
-static BalanceTuneConfig s_apply = { 0 };
 static AppTuneStatus s_status = { 0 };
-static uint16_t s_apply_seq = 0u;
 static uint16_t s_cmd_seq = 0u;
-static uint8_t s_result = APP_TUNE_RESULT_NONE;
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
@@ -109,10 +102,6 @@ static void app_tune_defaults(BalanceTuneConfig* config);
  */
 static bool app_tune_valid(const BalanceTuneConfig* config);
 /**
- * @brief app_tune_mark_dirty 内部辅助函数
- */
-static void app_tune_mark_dirty(void);
-/**
  * @brief app_tune_handle_line 内部辅助函数
  * @param line 文本缓冲区指针
  */
@@ -159,10 +148,6 @@ static void app_tune_print_status(void);
  * @brief app_tune_print_help 内部辅助函数
  */
 static void app_tune_print_help(void);
-/**
- * @brief app_tune_report_result 内部辅助函数
- */
-static void app_tune_report_result(void);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //
 
@@ -173,9 +158,7 @@ bool app_tune_init(void) {
     s_line_len = 0u;
     s_line_drop = false;
     s_rx_overflow = 0u;
-    s_apply_seq = 0u;
     s_cmd_seq = 0u;
-    s_result = APP_TUNE_RESULT_NONE;
 
     if(balance_get_tune(&s_pending) != BALANCE_STATUS_OK) {
         return false;
@@ -201,7 +184,6 @@ void app_tune_process(void) {
     }
 
     s_status.overflow_count = s_rx_overflow;
-    app_tune_report_result();
     while(app_tune_pop(&data)) {
         if(data == '\r' || data == '\n') {
             if(s_line_drop) {
@@ -238,30 +220,6 @@ void app_tune_process(void) {
     }
 }
 
-void app_tune_apply_pending(void) {
-    BalanceStatusCode result;
-
-    if(!s_initialized || !s_status.apply_pending) {
-        return;
-    }
-
-    s_status.apply_pending = false;
-    result = balance_apply_tune(&s_apply);
-    if(result == BALANCE_STATUS_OK) {
-        s_status.apply_count++;
-        s_status.dirty = s_status.session_seq != s_apply_seq;
-        s_status.state = s_status.dirty ? APP_TUNE_EDIT : APP_TUNE_APPLIED;
-        s_result = APP_TUNE_RESULT_OK;
-    }
-    else {
-        s_status.reject_count++;
-        s_status.state = APP_TUNE_REJECTED;
-        s_result = result == BALANCE_STATUS_STATE_DENIED
-                       ? APP_TUNE_RESULT_STATE
-                       : APP_TUNE_RESULT_INVALID;
-    }
-}
-
 const AppTuneStatus* app_tune_get_status(void) {
     return &s_status;
 }
@@ -270,10 +228,6 @@ const char* app_tune_state_str(AppTuneState state) {
     switch(state) {
         case APP_TUNE_IDLE:
             return "IDLE";
-        case APP_TUNE_EDIT:
-            return "EDIT";
-        case APP_TUNE_APPLY_PENDING:
-            return "PENDING";
         case APP_TUNE_APPLIED:
             return "APPLIED";
         case APP_TUNE_REJECTED:
@@ -433,7 +387,10 @@ static void app_tune_defaults(BalanceTuneConfig* config) {
     config->motor_zero_rad = APP_CFG_MOTOR_ZERO_RAD;
     config->motor_min_rad = APP_CFG_MOTOR_MIN_RAD;
     config->motor_max_rad = APP_CFG_MOTOR_MAX_RAD;
-    config->motor_speed_rad_s = APP_CFG_MOTOR_SPEED_RAD_S;
+    config->motor_vel_rad_s = APP_CFG_MOTOR_VEL_RAD_S;
+    config->motor_kp = APP_CFG_MOTOR_KP;
+    config->motor_kd = APP_CFG_MOTOR_KD;
+    config->motor_tor_nm = APP_CFG_MOTOR_TOR_NM;
     config->level_gain = APP_CFG_LEVEL_GAIN;
     config->acc_gain = APP_CFG_ACC_GAIN;
     config->acc_tau_s = APP_CFG_ACC_TAU_S;
@@ -450,7 +407,10 @@ static bool app_tune_valid(const BalanceTuneConfig* config) {
     return isfinite(config->motor_zero_rad) != 0 &&
            isfinite(config->motor_min_rad) != 0 &&
            isfinite(config->motor_max_rad) != 0 &&
-           isfinite(config->motor_speed_rad_s) != 0 &&
+           isfinite(config->motor_vel_rad_s) != 0 &&
+           isfinite(config->motor_kp) != 0 &&
+           isfinite(config->motor_kd) != 0 &&
+           isfinite(config->motor_tor_nm) != 0 &&
            isfinite(config->level_gain) != 0 &&
            isfinite(config->acc_gain) != 0 &&
            isfinite(config->acc_tau_s) != 0 &&
@@ -460,22 +420,22 @@ static bool app_tune_valid(const BalanceTuneConfig* config) {
            config->motor_min_rad < config->motor_max_rad &&
            config->motor_zero_rad >= config->motor_min_rad &&
            config->motor_zero_rad <= config->motor_max_rad &&
-           config->motor_speed_rad_s > 0.0f &&
-           config->motor_speed_rad_s <= BALANCE_MOTOR_SPEED_MAX_RAD_S &&
+           fabsf(config->motor_vel_rad_s) <= BALANCE_MOTOR_VEL_MAX_RAD_S &&
+           config->motor_kp >= 0.0f &&
+           config->motor_kp <= BALANCE_MOTOR_KP_MAX &&
+           config->motor_kd >= 0.0f &&
+           config->motor_kd <= BALANCE_MOTOR_KD_MAX &&
+           fabsf(config->motor_tor_nm) <= BALANCE_MOTOR_TOR_MAX_NM &&
            config->acc_tau_s >= 0.0f &&
            config->vision_tau_s >= 0.0f;
-}
-
-static void app_tune_mark_dirty(void) {
-    s_status.session_seq++;
-    s_status.dirty = true;
-    s_status.state = APP_TUNE_EDIT;
 }
 
 static void app_tune_handle_line(char* line) {
     char* argv[APP_TUNE_ARG_MAX] = { 0 };
     uint8_t argc;
     bool enable;
+    float angle_rad;
+    BalanceTuneConfig previous;
     const BalanceStatus* balance_status;
 
     while(isspace((int)(unsigned char)*line) != 0) {
@@ -513,11 +473,17 @@ static void app_tune_handle_line(char* line) {
         return;
     }
     if(app_tune_eq(argv[0], "SET") && argc == 3u) {
-        if(app_tune_set_param(argv[1], argv[2])) {
-            app_tune_mark_dirty();
-            app_tune_reply("SET %s=%s PENDING", argv[1], argv[2]);
+        previous = s_pending;
+        if(app_tune_set_param(argv[1], argv[2]) &&
+           app_tune_valid(&s_pending) &&
+           balance_apply_tune(&s_pending) == BALANCE_STATUS_OK) {
+            s_status.session_seq++;
+            s_status.apply_count++;
+            s_status.state = APP_TUNE_APPLIED;
+            app_tune_reply("SET %s=%s OK", argv[1], argv[2]);
         }
         else {
+            s_pending = previous;
             s_status.reject_count++;
             s_status.state = APP_TUNE_REJECTED;
             app_tune_reply("REJECT param=%s value=%s", argv[1], argv[2]);
@@ -532,7 +498,7 @@ static void app_tune_handle_line(char* line) {
             return;
         }
         if(app_tune_set_ctrl(argv[1], enable)) {
-            s_status.state = s_status.dirty ? APP_TUNE_EDIT : APP_TUNE_APPLIED;
+            s_status.state = APP_TUNE_APPLIED;
             app_tune_reply_ctrl();
         }
         else {
@@ -542,41 +508,22 @@ static void app_tune_handle_line(char* line) {
         }
         return;
     }
-    if(app_tune_eq(argv[0], "APPLY") && argc == 1u) {
-        if(!s_status.dirty) {
-            app_tune_reply("APPLY SKIP no pending change");
-            return;
-        }
-        if(!app_tune_valid(&s_pending)) {
-            s_status.reject_count++;
-            s_status.state = APP_TUNE_REJECTED;
-            app_tune_reply("REJECT pending config invalid");
-            return;
-        }
-
-        s_apply = s_pending;
-        s_apply_seq = s_status.session_seq;
-        s_status.apply_pending = true;
-        s_status.state = APP_TUNE_APPLY_PENDING;
-        app_tune_reply("APPLY PENDING seq=%u", s_apply_seq);
-        return;
-    }
-    if(app_tune_eq(argv[0], "CANCEL") && argc == 1u) {
-        if(balance_get_tune(&s_pending) == BALANCE_STATUS_OK) {
-            s_status.dirty = false;
-            s_status.apply_pending = false;
-            s_status.state = APP_TUNE_IDLE;
-            app_tune_reply("CANCEL OK");
+    if(app_tune_eq(argv[0], "DEFAULT") && argc == 1u) {
+        previous = s_pending;
+        app_tune_defaults(&s_pending);
+        if(app_tune_valid(&s_pending) &&
+           balance_apply_tune(&s_pending) == BALANCE_STATUS_OK) {
+            s_status.session_seq++;
+            s_status.apply_count++;
+            s_status.state = APP_TUNE_APPLIED;
+            app_tune_reply("DEFAULT OK");
         }
         else {
-            app_tune_reply("CANCEL FAILED");
+            s_pending = previous;
+            s_status.reject_count++;
+            s_status.state = APP_TUNE_REJECTED;
+            app_tune_reply("DEFAULT REJECT");
         }
-        return;
-    }
-    if(app_tune_eq(argv[0], "DEFAULT") && argc == 1u) {
-        app_tune_defaults(&s_pending);
-        app_tune_mark_dirty();
-        app_tune_reply("DEFAULT PENDING");
         return;
     }
     if(app_tune_eq(argv[0], "ENABLE") && argc == 2u) {
@@ -587,7 +534,24 @@ static void app_tune_handle_line(char* line) {
             return;
         }
         app_tune_send_cmd(enable, false);
-        app_tune_reply("ENABLE %u", enable ? 1u : 0u);
+        app_tune_reply("CONTROL %s motor stays enabled", enable ? "ENABLED" : "DISABLED");
+        return;
+    }
+    if(app_tune_eq(argv[0], "MOTOR") && argc == 2u) {
+        if(!app_tune_parse_float(argv[1], &angle_rad)) {
+            s_status.reject_count++;
+            s_status.state = APP_TUNE_REJECTED;
+            app_tune_reply("REJECT motor angle=%s", argv[1]);
+            return;
+        }
+        if(balance_set_motor_angle(angle_rad) == BALANCE_STATUS_OK) {
+            app_tune_reply("MOTOR angle=%.6f rad OK", angle_rad);
+        }
+        else {
+            s_status.reject_count++;
+            s_status.state = APP_TUNE_REJECTED;
+            app_tune_reply("REJECT disable control first or angle out of range");
+        }
         return;
     }
     if(app_tune_eq(argv[0], "CLEAR") && argc == 1u) {
@@ -621,8 +585,14 @@ static bool app_tune_set_param(const char* name, const char* text) {
         s_pending.vision_kp = value;
     else if(app_tune_eq(name, "VISION_KD"))
         s_pending.vision_kd = value;
-    else if(app_tune_eq(name, "MOTOR_SPEED"))
-        s_pending.motor_speed_rad_s = value;
+    else if(app_tune_eq(name, "MOTOR_VEL"))
+        s_pending.motor_vel_rad_s = value;
+    else if(app_tune_eq(name, "MOTOR_KP"))
+        s_pending.motor_kp = value;
+    else if(app_tune_eq(name, "MOTOR_KD"))
+        s_pending.motor_kd = value;
+    else if(app_tune_eq(name, "MOTOR_TOR"))
+        s_pending.motor_tor_nm = value;
     else if(app_tune_eq(name, "MOTOR_ZERO"))
         s_pending.motor_zero_rad = value;
     else if(app_tune_eq(name, "MOTOR_MIN"))
@@ -676,8 +646,14 @@ static bool app_tune_get_param(const char* name) {
         app_tune_reply("VISION_KP=%.6f", s_pending.vision_kp);
     else if(app_tune_eq(name, "VISION_KD"))
         app_tune_reply("VISION_KD=%.6f", s_pending.vision_kd);
-    else if(app_tune_eq(name, "MOTOR_SPEED"))
-        app_tune_reply("MOTOR_SPEED=%.6f rad/s", s_pending.motor_speed_rad_s);
+    else if(app_tune_eq(name, "MOTOR_VEL"))
+        app_tune_reply("MOTOR_VEL=%.6f rad/s", s_pending.motor_vel_rad_s);
+    else if(app_tune_eq(name, "MOTOR_KP"))
+        app_tune_reply("MOTOR_KP=%.6f", s_pending.motor_kp);
+    else if(app_tune_eq(name, "MOTOR_KD"))
+        app_tune_reply("MOTOR_KD=%.6f", s_pending.motor_kd);
+    else if(app_tune_eq(name, "MOTOR_TOR"))
+        app_tune_reply("MOTOR_TOR=%.6f N*m", s_pending.motor_tor_nm);
     else if(app_tune_eq(name, "MOTOR_ZERO"))
         app_tune_reply("MOTOR_ZERO=%.6f rad", s_pending.motor_zero_rad);
     else if(app_tune_eq(name, "MOTOR_MIN"))
@@ -692,12 +668,15 @@ static bool app_tune_get_param(const char* name) {
 
 static void app_tune_get_all(void) {
     app_tune_reply_ctrl();
-    app_tune_reply("MOTOR zero=%.4f min=%.4f max=%.4f speed=%.4f dirty=%u",
+    app_tune_reply("MOTOR zero=%.4f min=%.4f max=%.4f",
                    s_pending.motor_zero_rad,
                    s_pending.motor_min_rad,
-                   s_pending.motor_max_rad,
-                   s_pending.motor_speed_rad_s,
-                   s_status.dirty ? 1u : 0u);
+                   s_pending.motor_max_rad);
+    app_tune_reply("MIT vel=%.4f kp=%.4f kd=%.4f tor=%.4f",
+                   s_pending.motor_vel_rad_s,
+                   s_pending.motor_kp,
+                   s_pending.motor_kd,
+                   s_pending.motor_tor_nm);
     app_tune_reply("GAIN level=%.4f acc=%.4f vision_kp=%.4f vision_kd=%.4f",
                    s_pending.level_gain,
                    s_pending.acc_gain,
@@ -731,10 +710,8 @@ static void app_tune_send_cmd(bool enable, bool clear_fault) {
 static void app_tune_print_status(void) {
     const BalanceStatus* balance_status = balance_get_status();
 
-    app_tune_reply("STATUS tune=%s dirty=%u pending=%u seq=%u rx=%lu apply=%lu reject=%lu overflow=%lu",
+    app_tune_reply("STATUS tune=%s seq=%u rx=%lu apply=%lu reject=%lu overflow=%lu",
                    app_tune_state_str(s_status.state),
-                   s_status.dirty ? 1u : 0u,
-                   s_status.apply_pending ? 1u : 0u,
                    s_status.session_seq,
                    (unsigned long)s_status.rx_line_count,
                    (unsigned long)s_status.apply_count,
@@ -751,31 +728,10 @@ static void app_tune_print_status(void) {
 }
 
 static void app_tune_print_help(void) {
-    app_tune_reply("CMD @GET ALL | @GET name | @SET name value | @APPLY | @CANCEL | @DEFAULT");
+    app_tune_reply("CMD @GET ALL | @GET name | @SET name value | @DEFAULT");
     app_tune_reply("CMD @CTRL LEVEL|ACC|VISION 0|1");
-    app_tune_reply("CMD @ENABLE 0|1 | @CLEAR | @STATUS");
-    app_tune_reply("PARAM MOTOR_ZERO MOTOR_MIN MOTOR_MAX MOTOR_SPEED");
+    app_tune_reply("CMD @ENABLE 0|1 | @MOTOR angle_rad | @CLEAR | @STATUS");
+    app_tune_reply("PARAM MOTOR_ZERO MOTOR_MIN MOTOR_MAX MOTOR_VEL MOTOR_KP MOTOR_KD MOTOR_TOR");
     app_tune_reply("PARAM LEVEL_GAIN ACC_GAIN ACC_TAU VISION_TAU VISION_KP VISION_KD");
     app_tune_reply("DIR and IMU axis stay in app_config.h");
-}
-
-static void app_tune_report_result(void) {
-    uint8_t result = s_result;
-
-    if(result == APP_TUNE_RESULT_NONE) {
-        return;
-    }
-    s_result = APP_TUNE_RESULT_NONE;
-
-    if(result == APP_TUNE_RESULT_OK) {
-        app_tune_reply("APPLY OK seq=%u dirty=%u",
-                       s_apply_seq,
-                       s_status.dirty ? 1u : 0u);
-    }
-    else if(result == APP_TUNE_RESULT_STATE) {
-        app_tune_reply("APPLY REJECT state");
-    }
-    else {
-        app_tune_reply("APPLY REJECT invalid config");
-    }
 }

@@ -7,14 +7,14 @@
  *
  * @details
  * 本文件只保存应用真正需要的默认参数；IMU 轴与方向、视觉偏移方向和
- * 电机方向属于编译期配置；DM-4340 固定使用位置速度模式
+ * 电机方向属于编译期配置；DM-4340 固定使用 MIT 模式
  * 无线调参只修改运行参数，不负责修改传感器安装方向
  *
  * @par 目录
  * - 1. 电机参数
  *   - 1.1 电机协议 ID
  *   - 1.2 电机应用零位和位置范围
- *   - 1.3 位置速度模式全程配速
+ *   - 1.3 MIT 模式参数
  *   - 1.4 电机方向
  * - 2. 传感器方向参数
  *   - 2.1 加速度轴
@@ -49,22 +49,32 @@
 /**
  * @brief 摆杆电机应用位置下限，单位 rad
  */
-#define APP_CFG_MOTOR_MIN_RAD -1.5f
+#define APP_CFG_MOTOR_MIN_RAD -0.88f
 
 /**
  * @brief 摆杆电机应用位置上限，单位 rad
  */
-#define APP_CFG_MOTOR_MAX_RAD 1.5f
+#define APP_CFG_MOTOR_MAX_RAD 0.68f
 
 /**
- * @brief 位置速度模式全程配速，单位 rad/s
- *
- * @details
- * 该值会原样写入每一帧位置速度指令的 v_des，不根据位置误差改变;
- * DM-4340 V3 可选范围为 (0, 10] rad/s，默认 10 rad/s 表示使用最快配速;
- * 设置为 0 时电机不会移动且配置无效
+ * @brief MIT 模式目标速度，单位 rad/s
  */
-#define APP_CFG_MOTOR_SPEED_RAD_S 10.0f
+#define APP_CFG_MOTOR_VEL_RAD_S 0.0f
+
+/**
+ * @brief MIT 模式位置比例系数
+ */
+#define APP_CFG_MOTOR_KP 4.0f
+
+/**
+ * @brief MIT 模式位置微分系数
+ */
+#define APP_CFG_MOTOR_KD 0.04f
+
+/**
+ * @brief MIT 模式前馈扭矩，单位 N*m
+ */
+#define APP_CFG_MOTOR_TOR_NM 0.0f
 
 /**
  * @brief 控制角到电机方向的符号
@@ -141,7 +151,7 @@
 /**
  * @brief 纵向加速度前馈补偿增益
  */
-#define APP_CFG_ACC_GAIN -10.0f
+#define APP_CFG_ACC_GAIN -5.0f
 
 /**
  * @brief 加速度一阶低通时间常数，单位 s

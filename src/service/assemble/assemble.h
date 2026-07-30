@@ -46,7 +46,7 @@ SystemStatus assemble_motor(void);
 /**
  * @brief IMU 校准完成后准备摆杆电机
  * @param id 电机协议 ID
- * @return true 表示失能、清错和位置速度模式确认全部成功
+ * @return true 表示失能、清错和 MIT 模式确认全部成功
  */
 bool assemble_motor_prepare(uint16_t id);
 /**

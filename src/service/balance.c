@@ -165,8 +165,10 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
     if(config->motor_id == 0u || config->motor_min_rad >= config->motor_max_rad ||
        config->motor_zero_rad < config->motor_min_rad ||
        config->motor_zero_rad > config->motor_max_rad ||
-       config->motor_speed_rad_s <= 0.0f ||
-       config->motor_speed_rad_s > BALANCE_MOTOR_SPEED_MAX_RAD_S ||
+       fabsf(config->motor_vel_rad_s) > BALANCE_MOTOR_VEL_MAX_RAD_S ||
+       config->motor_kp < 0.0f || config->motor_kp > BALANCE_MOTOR_KP_MAX ||
+       config->motor_kd < 0.0f || config->motor_kd > BALANCE_MOTOR_KD_MAX ||
+       fabsf(config->motor_tor_nm) > BALANCE_MOTOR_TOR_MAX_NM ||
        config->motor_sign == 0.0f ||
        config->acc_sign == 0.0f || config->pitch_sign == 0.0f ||
        config->ball_sign == 0.0f || config->acc_tau_s < 0.0f ||
@@ -178,7 +180,10 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
        !balance_value_valid(config->motor_zero_rad) ||
        !balance_value_valid(config->motor_min_rad) ||
        !balance_value_valid(config->motor_max_rad) ||
-       !balance_value_valid(config->motor_speed_rad_s) ||
+       !balance_value_valid(config->motor_vel_rad_s) ||
+       !balance_value_valid(config->motor_kp) ||
+       !balance_value_valid(config->motor_kd) ||
+       !balance_value_valid(config->motor_tor_nm) ||
        !balance_value_valid(config->motor_sign) ||
        !balance_value_valid(config->acc_sign) ||
        !balance_value_valid(config->pitch_sign) ||
@@ -295,9 +300,15 @@ void balance_process(float dt_s) {
 
     if(!s_enable_requested) {
         balance_set_state(BALANCE_STATE_READY);
-        if(s_motor_prepared && s_status.motor_enabled) {
-            (void)bus_motor.disable(s_config.motor_id);
+        balance_enable_motor(now_ms);
+        if(!s_status.motor_enabled) {
+            return;
         }
+        if(!s_motor_cmd_ready) {
+            s_status.motor_cmd_rad = s_status.motor_pos_rad;
+            s_motor_cmd_ready = true;
+        }
+        balance_send_motor(now_ms);
         return;
     }
 
@@ -415,7 +426,10 @@ BalanceStatusCode balance_get_tune(BalanceTuneConfig* config) {
     config->motor_zero_rad = s_config.motor_zero_rad;
     config->motor_min_rad = s_config.motor_min_rad;
     config->motor_max_rad = s_config.motor_max_rad;
-    config->motor_speed_rad_s = s_config.motor_speed_rad_s;
+    config->motor_vel_rad_s = s_config.motor_vel_rad_s;
+    config->motor_kp = s_config.motor_kp;
+    config->motor_kd = s_config.motor_kd;
+    config->motor_tor_nm = s_config.motor_tor_nm;
     config->level_gain = s_config.level_gain;
     config->acc_gain = s_config.acc_gain;
     config->acc_tau_s = s_config.acc_tau_s;
@@ -433,7 +447,10 @@ BalanceStatusCode balance_apply_tune(const BalanceTuneConfig* config) {
     s_config.motor_zero_rad = config->motor_zero_rad;
     s_config.motor_min_rad = config->motor_min_rad;
     s_config.motor_max_rad = config->motor_max_rad;
-    s_config.motor_speed_rad_s = config->motor_speed_rad_s;
+    s_config.motor_vel_rad_s = config->motor_vel_rad_s;
+    s_config.motor_kp = config->motor_kp;
+    s_config.motor_kd = config->motor_kd;
+    s_config.motor_tor_nm = config->motor_tor_nm;
     s_config.level_gain = config->level_gain;
     s_config.acc_gain = config->acc_gain;
     s_config.acc_tau_s = config->acc_tau_s;
@@ -465,6 +482,23 @@ BalanceStatusCode balance_set_ctrl_mask(uint8_t ctrl_mask) {
              (ctrl_mask & BALANCE_CTRL_LEVEL) != 0u ? 1u : 0u,
              (ctrl_mask & BALANCE_CTRL_ACC) != 0u ? 1u : 0u,
              (ctrl_mask & BALANCE_CTRL_VISION) != 0u ? 1u : 0u);
+    return BALANCE_STATUS_OK;
+}
+
+BalanceStatusCode balance_set_motor_angle(float angle_rad) {
+    if(!s_initialized || !balance_value_valid(angle_rad) ||
+       angle_rad < s_config.motor_min_rad ||
+       angle_rad > s_config.motor_max_rad) {
+        return BALANCE_STATUS_INVALID_PARAM;
+    }
+    if(s_enable_requested || !s_motor_prepared ||
+       s_status.state == BALANCE_STATE_CALIB ||
+       s_status.state == BALANCE_STATE_FAULT) {
+        return BALANCE_STATUS_STATE_DENIED;
+    }
+
+    s_status.motor_cmd_rad = angle_rad;
+    s_motor_cmd_ready = true;
     return BALANCE_STATUS_OK;
 }
 
@@ -560,7 +594,10 @@ static bool balance_tune_valid(const BalanceTuneConfig* config) {
     return balance_value_valid(config->motor_zero_rad) &&
            balance_value_valid(config->motor_min_rad) &&
            balance_value_valid(config->motor_max_rad) &&
-           balance_value_valid(config->motor_speed_rad_s) &&
+           balance_value_valid(config->motor_vel_rad_s) &&
+           balance_value_valid(config->motor_kp) &&
+           balance_value_valid(config->motor_kd) &&
+           balance_value_valid(config->motor_tor_nm) &&
            balance_value_valid(config->level_gain) &&
            balance_value_valid(config->acc_gain) &&
            balance_value_valid(config->acc_tau_s) &&
@@ -570,8 +607,12 @@ static bool balance_tune_valid(const BalanceTuneConfig* config) {
            config->motor_min_rad < config->motor_max_rad &&
            config->motor_zero_rad >= config->motor_min_rad &&
            config->motor_zero_rad <= config->motor_max_rad &&
-           config->motor_speed_rad_s > 0.0f &&
-           config->motor_speed_rad_s <= BALANCE_MOTOR_SPEED_MAX_RAD_S &&
+           fabsf(config->motor_vel_rad_s) <= BALANCE_MOTOR_VEL_MAX_RAD_S &&
+           config->motor_kp >= 0.0f &&
+           config->motor_kp <= BALANCE_MOTOR_KP_MAX &&
+           config->motor_kd >= 0.0f &&
+           config->motor_kd <= BALANCE_MOTOR_KD_MAX &&
+           fabsf(config->motor_tor_nm) <= BALANCE_MOTOR_TOR_MAX_NM &&
            config->acc_tau_s >= 0.0f &&
            config->vision_tau_s >= 0.0f;
 }
@@ -747,9 +788,12 @@ static void balance_send_motor(uint32_t now_ms) {
     if(!s_motor_prepared) {
         return;
     }
-    status = bus_motor.set_pos_vel(s_config.motor_id,
-                                   s_status.motor_cmd_rad,
-                                   s_config.motor_speed_rad_s);
+    status = bus_motor.set_mit(s_config.motor_id,
+                               s_status.motor_cmd_rad,
+                               s_config.motor_vel_rad_s,
+                               s_config.motor_kp,
+                               s_config.motor_kd,
+                               s_config.motor_tor_nm);
     if(status == MOTOR_STATUS_OK) {
         s_motor_write_fail_count = 0u;
         return;

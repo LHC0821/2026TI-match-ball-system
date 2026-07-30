@@ -16,8 +16,6 @@
  */
 typedef enum {
     APP_TUNE_IDLE = 0,
-    APP_TUNE_EDIT,
-    APP_TUNE_APPLY_PENDING,
     APP_TUNE_APPLIED,
     APP_TUNE_REJECTED,
 } AppTuneState;
@@ -33,8 +31,6 @@ typedef struct {
     uint32_t overflow_count;
     uint32_t last_rx_ms;
     uint16_t session_seq;
-    bool dirty;
-    bool apply_pending;
 } AppTuneStatus;
 
 // ! ========================= 接 口 函 数 声 明 ========================= ! //
@@ -48,10 +44,6 @@ bool app_tune_init(void);
  * @brief app_tune_process 接口函数
  */
 void app_tune_process(void);
-/**
- * @brief app_tune_apply_pending 接口函数
- */
-void app_tune_apply_pending(void);
 /**
  * @brief app_tune_get_status 接口函数
  * @return 结果指针

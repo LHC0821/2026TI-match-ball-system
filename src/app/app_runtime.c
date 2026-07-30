@@ -65,7 +65,6 @@ void app_runtime_process(void) {
     uint32_t elapsed_us;
     float dt_s;
 
-    app_tune_apply_pending();
     now_us = delay_now_us();
     if(s_process_last_us == 0u) {
         dt_s = APP_RUNTIME_DEFAULT_DT_S;
@@ -215,10 +214,8 @@ static void app_runtime_log_status(void) {
              (unsigned long)status->fault_flags,
              (unsigned long)stats.rx_frame_count,
              (unsigned long)stats.rx_bad_crc_count);
-    log_info("TUNE state=%s dirty=%u pending=%u seq=%u rx=%lu apply=%lu reject=%lu overflow=%lu",
+    log_info("TUNE state=%s seq=%u rx=%lu apply=%lu reject=%lu overflow=%lu",
              app_tune_state_str(tune->state),
-             tune->dirty ? 1u : 0u,
-             tune->apply_pending ? 1u : 0u,
              tune->session_seq,
              (unsigned long)tune->rx_line_count,
              (unsigned long)tune->apply_count,
