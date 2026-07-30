@@ -11,6 +11,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/**
+ * @brief DM-4340 V3 位置速度指令允许的最高配速，单位 rad/s
+ */
+#define BALANCE_MOTOR_SPEED_MAX_RAD_S 10.0f
+
 // ! ========================= 接 口 变 量 / Typedef 声 明 ========================= ! //
 
 /**
@@ -93,6 +98,8 @@ typedef struct {
  */
 typedef struct {
     uint32_t (*now_ms)(void);
+    /** @brief IMU 校准完成后执行一次电机协议准备 */
+    bool (*prepare_motor)(uint16_t id);
 } BalancePortOps;
 
 /**
@@ -105,11 +112,8 @@ typedef struct {
     float motor_zero_rad;
     float motor_min_rad;
     float motor_max_rad;
+    /** @brief 每帧位置速度指令固定使用的全程配速，单位 rad/s */
     float motor_speed_rad_s;
-    /** @brief 电机位置外环积分补偿增益，单位 1/s */
-    float motor_pos_i_gain;
-    /** @brief 电机位置外环积分补偿最大角度，单位 rad */
-    float motor_pos_i_limit_rad;
     float motor_sign;
 
     BalanceAxis acc_axis;
@@ -140,6 +144,7 @@ typedef struct {
     float motor_zero_rad;
     float motor_min_rad;
     float motor_max_rad;
+    /** @brief 无线调参设置的位置速度指令全程配速，单位 rad/s */
     float motor_speed_rad_s;
     float level_gain;
     float acc_gain;

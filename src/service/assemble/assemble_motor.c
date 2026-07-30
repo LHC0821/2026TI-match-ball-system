@@ -83,22 +83,42 @@ SystemStatus assemble_motor(void) {
         return SYSTEM_STATUS_ERROR;
     }
 
-    delay_ms(100u);
-    if(bus_motor.disable(BAL_MOTOR_ID) != MOTOR_STATUS_OK) {
-        return SYSTEM_STATUS_ERROR;
-    }
-    delay_ms(20u);
-    if(dm_motor_clear_error(BAL_MOTOR_ID) != MOTOR_STATUS_OK) {
-        return SYSTEM_STATUS_ERROR;
-    }
-    delay_ms(20u);
-    if(bus_motor.switch_mode(BAL_MOTOR_ID, DM_MOTOR_MODE_MIT) != MOTOR_STATUS_OK) {
-        return SYSTEM_STATUS_ERROR;
-    }
-
-    log_info("MOTOR DM-4340 configured: id=0x%02X master=0x%02X mode=MIT",
+    log_info("MOTOR DM-4340 bus ready: id=0x%02X master=0x%02X",
              BAL_MOTOR_ID, BAL_MASTER_ID);
     return SYSTEM_STATUS_OK;
+}
+
+bool assemble_motor_prepare(uint16_t id) {
+    BusMotorStatus status;
+
+    if(id != BAL_MOTOR_ID) {
+        log_error("MOTOR prepare rejected: id=0x%03X", id);
+        return false;
+    }
+
+    status = bus_motor.disable(id);
+    if(status != MOTOR_STATUS_OK) {
+        log_error("MOTOR disable failed: %s", bus_motor.status_str(status));
+        return false;
+    }
+    delay_ms(20u);
+
+    status = dm_motor_clear_error(id);
+    if(status != MOTOR_STATUS_OK) {
+        log_error("MOTOR clear failed: %s", bus_motor.status_str(status));
+        return false;
+    }
+    delay_ms(20u);
+
+    status = bus_motor.switch_mode(id, DM_MOTOR_MODE_POS_VEL);
+    if(status != MOTOR_STATUS_OK) {
+        log_error("MOTOR POS_VEL switch failed: %s",
+                  bus_motor.status_str(status));
+        return false;
+    }
+
+    log_info("MOTOR DM-4340 ready: mode=POS_VEL");
+    return true;
 }
 
 // ! ========================= 私 有 函 数 实 现 ========================= ! //
@@ -117,6 +137,10 @@ static void assemble_motor_can_rx(FDCAN_HandleTypeDef* hcan,
     (void)user;
 
     if(header == 0 || header->Identifier != BAL_MASTER_ID) {
+        return;
+    }
+
+    if(dm_motor_parse_parameter_frame(header->Identifier, data)) {
         return;
     }
 

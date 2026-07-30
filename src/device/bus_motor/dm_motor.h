@@ -39,7 +39,7 @@
  * @brief 达妙电机型号
  */
 typedef enum {
-    DM_MOTOR_MODEL_4340 = 0u, /**< DM-4340，MIT 量程为 ±12.5rad、±8rad/s、±28N*m */
+    DM_MOTOR_MODEL_4340 = 0u, /**< DM-4340，MIT 量程为 ±12.5664rad、±10rad/s、±28N*m */
 } DmMotorModel;
 
 /**
@@ -85,6 +85,15 @@ BusMotorStatus dm_motor_make_4340_config(DmMotorConfig* config, uint16_t master_
 BusMotorStatus dm_motor_parse_feedback_frame(uint32_t frame_id,
                                              const uint8_t data[DM_MOTOR_CMD_LEN],
                                              BusMotorFeedback* feedback);
+
+/**
+ * @brief 解析达妙电机参数读写应答
+ * @param frame_id CAN 应答帧 ID
+ * @param data 8 字节应答数据
+ * @return true 表示该帧属于参数应答，false 表示应继续按状态反馈解析
+ */
+bool dm_motor_parse_parameter_frame(uint32_t frame_id,
+                                    const uint8_t data[DM_MOTOR_CMD_LEN]);
 
 /**
  * @brief 清除指定达妙电机错误

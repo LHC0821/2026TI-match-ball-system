@@ -27,8 +27,8 @@
 static BalanceConfig s_config = { 0 };
 static BalanceStatus s_status = { 0 };
 static Pid s_vision_pid = { 0 };
-static Pid s_motor_pos_i_pid = { 0 };
 static bool s_initialized = false;
+static bool s_motor_prepared = false;
 static bool s_enable_requested = false;
 static bool s_fault_braked = false;
 static uint8_t s_motor_write_fail_count = 0u;
@@ -108,10 +108,6 @@ static bool balance_tune_valid(const BalanceTuneConfig* config);
  */
 static void balance_init_vision_pid(void);
 /**
- * @brief 初始化电机位置外环积分补偿
- */
-static void balance_init_motor_pos_i_pid(void);
-/**
  * @brief balance_set_state 内部辅助函数
  * @param state 状态值
  */
@@ -161,14 +157,17 @@ static void balance_send_motor(uint32_t now_ms);
 BalanceStatusCode balance_init(const BalanceConfig* config) {
     s_initialized = false;
 
-    if(config == 0 || config->port_ops.now_ms == 0) {
+    if(config == 0 ||
+       config->port_ops.now_ms == 0 ||
+       config->port_ops.prepare_motor == 0) {
         return BALANCE_STATUS_INVALID_PARAM;
     }
     if(config->motor_id == 0u || config->motor_min_rad >= config->motor_max_rad ||
        config->motor_zero_rad < config->motor_min_rad ||
        config->motor_zero_rad > config->motor_max_rad ||
-       config->motor_speed_rad_s < 0.0f || config->motor_sign == 0.0f ||
-       config->motor_pos_i_gain < 0.0f || config->motor_pos_i_limit_rad <= 0.0f ||
+       config->motor_speed_rad_s <= 0.0f ||
+       config->motor_speed_rad_s > BALANCE_MOTOR_SPEED_MAX_RAD_S ||
+       config->motor_sign == 0.0f ||
        config->acc_sign == 0.0f || config->pitch_sign == 0.0f ||
        config->ball_sign == 0.0f || config->acc_tau_s < 0.0f ||
        config->vision_tau_s < 0.0f || config->calib_samples == 0u) {
@@ -180,8 +179,6 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
        !balance_value_valid(config->motor_min_rad) ||
        !balance_value_valid(config->motor_max_rad) ||
        !balance_value_valid(config->motor_speed_rad_s) ||
-       !balance_value_valid(config->motor_pos_i_gain) ||
-       !balance_value_valid(config->motor_pos_i_limit_rad) ||
        !balance_value_valid(config->motor_sign) ||
        !balance_value_valid(config->acc_sign) ||
        !balance_value_valid(config->pitch_sign) ||
@@ -201,9 +198,9 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
     s_config = *config;
     memset(&s_status, 0, sizeof(s_status));
     balance_init_vision_pid();
-    balance_init_motor_pos_i_pid();
 
     s_enable_requested = s_config.auto_enable;
+    s_motor_prepared = false;
     s_status.enable_requested = s_enable_requested;
     s_fault_braked = false;
     s_motor_write_fail_count = 0u;
@@ -269,12 +266,16 @@ void balance_process(float dt_s) {
                 s_pitch_zero = s_pitch_sum / (float)s_calib_count;
                 s_acc_zero = s_acc_sum / (float)s_calib_count;
                 s_acc_filt = 0.0f;
-                pid_reset(&s_motor_pos_i_pid);
                 s_status.motor_cmd_rad = s_config.motor_zero_rad;
                 s_return_zero_after_calib = true;
+                if(!s_config.port_ops.prepare_motor(s_config.motor_id)) {
+                    balance_raise_fault(BALANCE_FAULT_MOTOR_WRITE);
+                    return;
+                }
+                s_motor_prepared = true;
                 if(s_enable_requested) {
                     balance_set_state(BALANCE_STATE_ACTIVE);
-                    balance_enable_motor(now_ms);
+                    balance_enable_motor(balance_now_ms());
                 }
                 else {
                     balance_set_state(BALANCE_STATE_READY);
@@ -285,7 +286,7 @@ void balance_process(float dt_s) {
     }
 
     if(s_status.state == BALANCE_STATE_FAULT) {
-        if(!s_fault_braked) {
+        if(s_motor_prepared && !s_fault_braked) {
             (void)bus_motor.brake(s_config.motor_id);
             s_fault_braked = true;
         }
@@ -293,9 +294,8 @@ void balance_process(float dt_s) {
     }
 
     if(!s_enable_requested) {
-        pid_reset(&s_motor_pos_i_pid);
         balance_set_state(BALANCE_STATE_READY);
-        if(s_status.motor_enabled) {
+        if(s_motor_prepared && s_status.motor_enabled) {
             (void)bus_motor.disable(s_config.motor_id);
         }
         return;
@@ -570,7 +570,8 @@ static bool balance_tune_valid(const BalanceTuneConfig* config) {
            config->motor_min_rad < config->motor_max_rad &&
            config->motor_zero_rad >= config->motor_min_rad &&
            config->motor_zero_rad <= config->motor_max_rad &&
-           config->motor_speed_rad_s >= 0.0f &&
+           config->motor_speed_rad_s > 0.0f &&
+           config->motor_speed_rad_s <= BALANCE_MOTOR_SPEED_MAX_RAD_S &&
            config->acc_tau_s >= 0.0f &&
            config->vision_tau_s >= 0.0f;
 }
@@ -584,19 +585,6 @@ static void balance_init_vision_pid(void) {
     config.ki = 0.0f;
     config.kd = s_config.vision_kd;
     pid_init_cfg(&s_vision_pid, &config);
-}
-
-/**
- * @brief 初始化电机位置外环积分补偿
- */
-static void balance_init_motor_pos_i_pid(void) {
-    PidConfig config = { 0 };
-
-    config.mode = PID_MODE_I;
-    config.features = PID_FEAT_OUTPUT_LIMIT | PID_FEAT_ANTI_WINDUP;
-    config.ki = s_config.motor_pos_i_gain;
-    config.max_out = s_config.motor_pos_i_limit_rad;
-    pid_init_cfg(&s_motor_pos_i_pid, &config);
 }
 
 static void balance_set_state(BalanceState state) {
@@ -618,7 +606,6 @@ static void balance_clear_fault(void) {
     s_fault_braked = false;
     s_motor_write_fail_count = 0u;
     balance_init_vision_pid();
-    pid_reset(&s_motor_pos_i_pid);
     s_vis_angle = 0.0f;
     balance_set_state(s_enable_requested ? BALANCE_STATE_ACTIVE : BALANCE_STATE_READY);
 }
@@ -628,7 +615,6 @@ static void balance_update_motor_feedback(uint32_t now_ms) {
 
     if(s_motor_rx_ms == 0u) {
         s_status.motor_online = false;
-        pid_reset(&s_motor_pos_i_pid);
         return;
     }
 
@@ -638,7 +624,6 @@ static void balance_update_motor_feedback(uint32_t now_ms) {
     s_status.motor_enabled = s_motor_rx_error == 0x01u;
     if(!s_status.motor_enabled) {
         s_motor_cmd_ready = false;
-        pid_reset(&s_motor_pos_i_pid);
     }
     s_status.motor_online = true;
 }
@@ -724,16 +709,6 @@ static void balance_update_control(float dt_s) {
 
     target_angle = s_config.motor_zero_rad + s_config.motor_sign *
                    (level_angle + acc_angle + vision_angle);
-    if(s_status.motor_online && s_status.motor_enabled &&
-       s_config.motor_pos_i_gain > 0.0f) {
-        target_angle += pid_calculate(&s_motor_pos_i_pid,
-                                      target_angle,
-                                      s_status.motor_pos_rad,
-                                      dt_s);
-    }
-    else {
-        pid_reset(&s_motor_pos_i_pid);
-    }
     s_status.motor_cmd_rad = balance_clamp(target_angle,
                                            s_config.motor_min_rad,
                                            s_config.motor_max_rad);
@@ -742,7 +717,7 @@ static void balance_update_control(float dt_s) {
 static void balance_enable_motor(uint32_t now_ms) {
     BusMotorStatus status;
 
-    if(s_status.motor_enabled) {
+    if(!s_motor_prepared || s_status.motor_enabled) {
         return;
     }
     if(s_motor_enable_ms != 0u &&
@@ -769,6 +744,9 @@ static void balance_send_motor(uint32_t now_ms) {
     BusMotorStatus status;
 
     (void)now_ms;
+    if(!s_motor_prepared) {
+        return;
+    }
     status = bus_motor.set_pos_vel(s_config.motor_id,
                                    s_status.motor_cmd_rad,
                                    s_config.motor_speed_rad_s);

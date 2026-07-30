@@ -6,7 +6,7 @@
 // ! ========================= 变 量 声 明 ========================= ! //
 
 #define DM_MOTOR_4340_POS_LIMIT 12.5664f
-#define DM_MOTOR_4340_SPD_LIMIT 45.0f
+#define DM_MOTOR_4340_SPD_LIMIT 10.0f
 #define DM_MOTOR_4340_TOR_LIMIT 28.0f
 #define DM_MOTOR_KP_LIMIT 500.0f
 #define DM_MOTOR_KD_LIMIT 5.0f
@@ -17,6 +17,7 @@
 #define DM_MOTOR_REG_WRITE_FRAME_ID         0x7FFu
 #define DM_MOTOR_REG_CMD_WRITE              0x55u
 #define DM_MOTOR_REG_MODE_ID                10u
+#define DM_MOTOR_MODE_ACK_TIMEOUT_MS         100u
 
 typedef struct {
     DmMotorMode mode;
@@ -36,6 +37,9 @@ static float s_pos_limit = DM_MOTOR_4340_POS_LIMIT;
 static float s_spd_limit = DM_MOTOR_4340_SPD_LIMIT;
 static float s_tor_limit = DM_MOTOR_4340_TOR_LIMIT;
 static DmMotorSlot s_slots[DM_MOTOR_MAX_ID];
+static volatile uint32_t s_mode_ack_sequence = 0u;
+static volatile uint16_t s_mode_ack_id = 0u;
+static volatile uint32_t s_mode_ack_value = 0u;
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
@@ -301,6 +305,9 @@ static BusMotorStatus dm_motor_init(const BusMotorConfig* config) {
     s_pos_limit = DM_MOTOR_4340_POS_LIMIT;
     s_spd_limit = DM_MOTOR_4340_SPD_LIMIT;
     s_tor_limit = DM_MOTOR_4340_TOR_LIMIT;
+    s_mode_ack_sequence = 0u;
+    s_mode_ack_id = 0u;
+    s_mode_ack_value = 0u;
     for(id = 1u; id <= DM_MOTOR_MAX_ID; ++id) {
         dm_motor_reset_slot(&s_slots[id - 1u], id);
     }
@@ -340,7 +347,7 @@ static const char* dm_motor_mode_str(BusMotorMode mode) {
 static BusMotorStatus dm_motor_enable(uint16_t id) {
     static const uint8_t data[DM_MOTOR_CMD_LEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFC };
 
-    if(dm_motor_get_slot(id) == 0) {
+    if(dm_motor_get_slot_const(id) == 0) {
         return MOTOR_STATUS_INVALID_PARAM;
     }
 
@@ -353,7 +360,7 @@ static BusMotorStatus dm_motor_enable(uint16_t id) {
 static BusMotorStatus dm_motor_disable(uint16_t id) {
     static const uint8_t data[DM_MOTOR_CMD_LEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFD };
 
-    if(dm_motor_get_slot(id) == 0) {
+    if(dm_motor_get_slot_const(id) == 0) {
         return MOTOR_STATUS_INVALID_PARAM;
     }
 
@@ -366,6 +373,8 @@ static BusMotorStatus dm_motor_disable(uint16_t id) {
 static BusMotorStatus dm_motor_switch_mode(uint16_t id, BusMotorMode mode) {
     DmMotorSlot* slot = dm_motor_get_slot(id);
     BusMotorStatus status;
+    uint32_t ack_sequence;
+    uint32_t elapsed_ms;
 
     if(slot == 0) {
         return MOTOR_STATUS_INVALID_PARAM;
@@ -379,14 +388,28 @@ static BusMotorStatus dm_motor_switch_mode(uint16_t id, BusMotorMode mode) {
         default: return MOTOR_STATUS_UNSUPPORTED;
     }
 
+    ack_sequence = s_mode_ack_sequence;
     status = dm_motor_write_mode(id, (DmMotorMode)mode);
 
     if(status != MOTOR_STATUS_OK) {
         return status;
     }
 
-    slot->mode = (DmMotorMode)mode;
-    return MOTOR_STATUS_OK;
+    if(s_ops == 0 || s_ops->delay_ms == 0) {
+        return MOTOR_STATUS_PORT_ERROR;
+    }
+
+    for(elapsed_ms = 0u; elapsed_ms < DM_MOTOR_MODE_ACK_TIMEOUT_MS; ++elapsed_ms) {
+        if(s_mode_ack_sequence != ack_sequence &&
+           s_mode_ack_id == id &&
+           s_mode_ack_value == (uint32_t)mode) {
+            slot->mode = (DmMotorMode)mode;
+            return MOTOR_STATUS_OK;
+        }
+        s_ops->delay_ms(1u);
+    }
+
+    return MOTOR_STATUS_TIMEOUT;
 }
 
 /**
@@ -604,13 +627,43 @@ BusMotorStatus dm_motor_parse_feedback_frame(uint32_t frame_id,
     return MOTOR_STATUS_OK;
 }
 
+bool dm_motor_parse_parameter_frame(uint32_t frame_id,
+                                    const uint8_t data[DM_MOTOR_CMD_LEN]) {
+    uint16_t id;
+    uint32_t value;
+
+    if(data == 0 || frame_id != s_master_id) {
+        return false;
+    }
+    if(data[2] != 0x33u && data[2] != DM_MOTOR_REG_CMD_WRITE) {
+        return false;
+    }
+
+    id = (uint16_t)((uint16_t)data[0] | ((uint16_t)data[1] << 8));
+    if(id == 0u || id > DM_MOTOR_MAX_ID) {
+        return true;
+    }
+
+    if(data[3] == DM_MOTOR_REG_MODE_ID) {
+        value = (uint32_t)data[4] |
+                ((uint32_t)data[5] << 8) |
+                ((uint32_t)data[6] << 16) |
+                ((uint32_t)data[7] << 24);
+        s_mode_ack_id = id;
+        s_mode_ack_value = value;
+        s_mode_ack_sequence++;
+    }
+
+    return true;
+}
+
 /**
  * @brief 清除达妙电机错误
  */
 BusMotorStatus dm_motor_clear_error(uint16_t id) {
     static const uint8_t data[DM_MOTOR_CMD_LEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFB };
 
-    if(dm_motor_get_slot(id) == 0) {
+    if(dm_motor_get_slot_const(id) == 0) {
         return MOTOR_STATUS_INVALID_PARAM;
     }
 
@@ -623,7 +676,7 @@ BusMotorStatus dm_motor_clear_error(uint16_t id) {
 BusMotorStatus dm_motor_save_zero(uint16_t id) {
     static const uint8_t data[DM_MOTOR_CMD_LEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFE };
 
-    if(dm_motor_get_slot(id) == 0) {
+    if(dm_motor_get_slot_const(id) == 0) {
         return MOTOR_STATUS_INVALID_PARAM;
     }
 
@@ -754,7 +807,7 @@ static BusMotorStatus dm_motor_send_mit(uint16_t id, const DmMotorSlot* slot) {
     spd_bits = dm_motor_f32_to_u16(slot->speed, -s_spd_limit, s_spd_limit, 12);
     kp_bits = dm_motor_f32_to_u16(slot->kp, 0.0f, DM_MOTOR_KP_LIMIT, 12);
     kd_bits = dm_motor_f32_to_u16(slot->kd, 0.0f, DM_MOTOR_KD_LIMIT, 12);
-    tor_bits = dm_motor_f32_to_u16(DM_MOTOR_DEFAULT_TORQUE, -s_tor_limit, s_tor_limit, 12);
+    tor_bits = dm_motor_f32_to_u16(slot->torque, -s_tor_limit, s_tor_limit, 12);
 
     data[0] = (uint8_t)(pos_bits >> 8);
     data[1] = (uint8_t)(pos_bits & 0xFFu);

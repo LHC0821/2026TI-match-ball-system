@@ -1,6 +1,7 @@
 #ifndef _assemble_h_
 #define _assemble_h_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 // ! ========================= 接 口 变 量 / Typedef 声 明 ========================= ! //
@@ -42,6 +43,12 @@ SystemStatus assemble_imu(void);
  * @return 状态码
  */
 SystemStatus assemble_motor(void);
+/**
+ * @brief IMU 校准完成后准备摆杆电机
+ * @param id 电机协议 ID
+ * @return true 表示失能、清错和位置速度模式确认全部成功
+ */
+bool assemble_motor_prepare(uint16_t id);
 /**
  * @brief assemble_vision 接口函数
  * @return 状态码
