@@ -14,19 +14,19 @@ extern UART_HandleTypeDef huart10;
 // ! ========================= 接 口 函 数 声 明 ========================= ! //
 
 /**
- * @brief uart1_write_blocking 接口函数
+ * @brief uart1_write_it 接口函数
  * @param data 数据缓冲区指针
  * @param len 数据长度
  * @return true 表示成功或条件成立，false 表示失败或条件不成立
  */
-bool uart1_write_blocking(const char* data, uint32_t len);
+bool uart1_write_it(const char* data, uint32_t len);
 /**
- * @brief uart10_write_blocking 接口函数
+ * @brief uart10_write_it 接口函数
  * @param data 数据缓冲区指针
  * @param len 数据长度
  * @return true 表示成功或条件成立，false 表示失败或条件不成立
  */
-bool uart10_write_blocking(const char* data, uint32_t len);
+bool uart10_write_it(const char* data, uint32_t len);
 /**
  * @brief uart_receive_it 接口函数
  * @param huart UART 句柄指针

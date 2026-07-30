@@ -5,18 +5,14 @@
  * @file log.h
  * @brief 轻量级 printf 风格日志模块
  *
- * 本模块只依赖一个底层写接口 LogPortOps.write，可对接阻塞 UART、UART DMA、RTT、USB CDC、文件或 mock buffer
+ * 本模块只依赖一个底层写接口 LogPortOps.write，可对接 UART IT、RTT、USB CDC、文件或 mock buffer
  * 日志层负责格式化、级别过滤、可选 ANSI 颜色，以及异步输出时的缓冲区生命周期管理
  *
  * 最小同步用法
  *
  * @code
- * static bool board_log_write(const char* data, uint32_t len) {
- *     return HAL_UART_Transmit(&huart1, (uint8_t*)data, (uint16_t)len, 10) == HAL_OK;
- * }
- *
  * static const LogPortOps log_ops = {
- *     .write = board_log_write,
+ *     .write = uart1_write_it,
  * };
  *
  * void app_init(void) {
@@ -32,23 +28,21 @@
  * }
  * @endcode
  *
- * UART DMA 异步用法
+ * UART IT 缓冲用法
  *
  * @code
- * static bool board_log_write(const char* data, uint32_t len) {
- *     return HAL_UART_Transmit_DMA(&huart1, (uint8_t*)data, (uint16_t)len) == HAL_OK;
- * }
+ * static const LogPortOps log_ops = {
+ *     .write = uart1_write_it,
+ * };
  *
- * void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
- *     if(huart == &huart1) {
- *         log_write_complete();
- *     }
- * }
- *
- * void HAL_UART_ErrorCallback(UART_HandleTypeDef* huart) {
- *     if(huart == &huart1) {
- *         log_write_complete();
- *     }
+ * void app_init(void) {
+ *     LogConfig config = {
+ *         .ops = &log_ops,
+ *         .level = LOG_LEVEL_INFO,
+ *         .enable_color = true,
+ *         .async_write = false,
+ *     };
+ *     log_init(&config);
  * }
  * @endcode
  *
@@ -184,8 +178,8 @@ typedef struct {
     /**
      * @brief true 表示 write() 返回后底层仍可能继续读取 data
      *
-     * UART DMA 这类异步端口应设为 true，并在发送完成中断中调用 log_write_complete()
-     * 阻塞 UART、RTT、mock buffer 这类同步端口保持 false 即可
+     * 由底层自行复制数据的 IT 缓冲端口保持 false
+     * 只有由底层继续持有 data 的异步端口才设为 true
      */
     bool async_write;
 } LogConfig;
@@ -209,7 +203,7 @@ LogStatus log_set_level(LogLevel level);
 /**
  * @brief 通知日志模块上一段异步输出已经完成
  *
- * 仅当 LogConfig.async_write 为 true 时需要调用，通常放在 UART DMA Tx complete 回调里
+ * 仅当 LogConfig.async_write 为 true 时需要调用，通常放在底层发送完成回调里
  */
 void log_write_complete(void);
 

@@ -7,6 +7,7 @@
 
 #include "app_tune.h"
 #include "binary_frame.h"
+#include "delay.h"
 #include "log.h"
 #include "rgb_led/rgb_led.h"
 #include "vision_comms.h"
@@ -15,7 +16,8 @@
 
 // ! ========================= 宏 定 义 声 明 ========================= ! //
 
-#define APP_RUNTIME_DT_S 0.002f
+#define APP_RUNTIME_DEFAULT_DT_S 0.002f
+#define APP_RUNTIME_MAX_DT_S 0.020f
 #define APP_RUNTIME_STATUS_DIV 50u
 #define APP_RUNTIME_RGB_DIV 50u
 #define APP_RUNTIME_LOG_DIV 500u
@@ -25,6 +27,7 @@
 static uint16_t s_status_tick = 0u;
 static uint16_t s_rgb_tick = 0u;
 static uint16_t s_log_tick = 0u;
+static uint32_t s_process_last_us = 0u;
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
@@ -53,12 +56,29 @@ bool app_runtime_init(void) {
     s_status_tick = 0u;
     s_rgb_tick = 0u;
     s_log_tick = 0u;
+    s_process_last_us = 0u;
     return app_tune_init();
 }
 
 void app_runtime_process(void) {
+    uint32_t now_us;
+    uint32_t elapsed_us;
+    float dt_s;
+
     app_tune_apply_pending();
-    balance_process(APP_RUNTIME_DT_S);
+    now_us = delay_now_us();
+    if(s_process_last_us == 0u) {
+        dt_s = APP_RUNTIME_DEFAULT_DT_S;
+    }
+    else {
+        elapsed_us = now_us - s_process_last_us;
+        dt_s = (float)elapsed_us * 0.000001f;
+        if(dt_s <= 0.0f || dt_s > APP_RUNTIME_MAX_DT_S) {
+            dt_s = APP_RUNTIME_DEFAULT_DT_S;
+        }
+    }
+    s_process_last_us = now_us;
+    balance_process(dt_s);
 
     s_status_tick++;
     if(s_status_tick >= APP_RUNTIME_STATUS_DIV) {
@@ -106,13 +126,13 @@ static void app_runtime_send_status(void) {
     VisionMcuStatus packet;
 
     packet.stamp_ms = status->stamp_ms;
-    packet.ball_mm = binary_frame_m_to_mm_i16(status->ball_pos_m);
-    packet.target_mm = binary_frame_m_to_mm_i16(status->target_m);
+    packet.offset_mm = binary_frame_m_to_mm_i16(status->vision_offset_m);
+    packet.offset_vel_mm_s = binary_frame_m_to_mm_i16(status->vision_offset_vel_m_s);
     packet.motor_angle_mrad = binary_frame_rad_to_mrad_i16(status->motor_cmd_rad);
     packet.pitch_mrad = binary_frame_rad_to_mrad_i16(status->pitch_rad);
     packet.acc_mm_s2 = binary_frame_m_to_mm_i16(status->acc_m_s2);
     packet.state = (uint8_t)status->state;
-    packet.mode = (uint8_t)status->mode;
+    packet.reserved = 0u;
     packet.flags = app_runtime_make_status_flags(status);
     packet.motor_error = status->motor_error;
     packet.fault_flags = (uint16_t)(status->fault_flags & 0xFFFFu);
@@ -167,25 +187,27 @@ static void app_runtime_log_status(void) {
     VisionCommsStats stats;
 
     vision_comms_get_stats(&stats);
-    log_info("BAL state=%s mode=%s en=%u ctrl=L%uA%uV%uI%u loop=%s ball=%.3f target=%.3f pitch=%.3f acc=%.3f",
+    log_info("--------------------");
+    log_info("BAL state=%s en=%u loop=%s offset=%.3f offset_v=%.3f pitch=%.3f acc=%.3f",
              balance_state_str(status->state),
-             balance_mode_str(status->mode),
              status->enable_requested ? 1u : 0u,
-             (status->ctrl_mask & BALANCE_CTRL_LEVEL) != 0u,
-             (status->ctrl_mask & BALANCE_CTRL_ACC) != 0u,
-             (status->ctrl_mask & BALANCE_CTRL_VISION) != 0u,
-             (status->ctrl_mask & BALANCE_CTRL_VISION_I) != 0u,
              status->ball_loop_closed ? "CLOSED" : "OPEN",
-             status->ball_pos_m,
-             status->target_m,
+             status->vision_offset_m,
+             status->vision_offset_vel_m_s,
              status->pitch_rad,
              status->acc_m_s2);
-    log_info("BAL angle level=%.3f acc=%.3f vis=%.3f cmd=%.3f pos=%.3f mon=%u men=%u err=0x%X fault=0x%08lX vrx=%lu vcrc=%lu",
+    log_info("BAL ctrl mask=0x%02X level=%u acc=%u vision=%u",
+             status->ctrl_mask,
+             (status->ctrl_mask & BALANCE_CTRL_LEVEL) != 0u ? 1u : 0u,
+             (status->ctrl_mask & BALANCE_CTRL_ACC) != 0u ? 1u : 0u,
+             (status->ctrl_mask & BALANCE_CTRL_VISION) != 0u ? 1u : 0u);
+    log_info("BAL angle level=%.3f acc=%.3f vis=%.3f cmd=%.3f pos=%.3f spd=%.3f mon=%u men=%u err=0x%X fault=0x%08lX vrx=%lu vcrc=%lu",
              status->level_angle_rad,
              status->acc_angle_rad,
              status->vision_angle_rad,
              status->motor_cmd_rad,
              status->motor_pos_rad,
+             status->motor_spd_rad_s,
              status->motor_online ? 1u : 0u,
              status->motor_enabled ? 1u : 0u,
              status->motor_error,
@@ -212,7 +234,7 @@ static uint8_t app_runtime_make_status_flags(const BalanceStatus* status) {
     if(status->motor_online) {
         flags |= VISION_STATUS_FLAG_MOTOR_ONLINE;
     }
-    if(vision_comms_is_online()) {
+    if(status->vision_online) {
         flags |= VISION_STATUS_FLAG_VISION_ONLINE;
     }
     if(status->vision_valid) {

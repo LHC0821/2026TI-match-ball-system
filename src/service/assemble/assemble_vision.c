@@ -49,7 +49,6 @@ SystemStatus assemble_vision(void) {
             .write = assemble_vision_write,
             .now_ms = assemble_vision_now_ms,
         },
-        .online_timeout_ms = 500u,
     };
 
     if(vision_comms_init(&config) != VISION_COMMS_STATUS_OK) {
@@ -66,7 +65,7 @@ SystemStatus assemble_vision(void) {
 // ! ========================= 私 有 函 数 实 现 ========================= ! //
 
 static bool assemble_vision_write(const char* data, uint32_t len) {
-    return uart10_write_blocking(data, len);
+    return uart10_write_it(data, len);
 }
 
 static uint32_t assemble_vision_now_ms(void) {

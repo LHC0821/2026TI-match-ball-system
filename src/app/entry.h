@@ -10,6 +10,7 @@
 #include "assemble/assemble.h"
 #include "delay.h"
 #include "log.h"
+#include "main.h" // IWYU pragma: keep
 
 #include <stdbool.h>
 
@@ -76,16 +77,26 @@ static inline void entry_init(void) {
  * @brief entry_loop 内部辅助函数
  */
 static inline void entry_loop(void) {
+    uint32_t pending;
+
     if(!init_ok) {
         return;
     }
 
-    app_runtime_background();
-
-    if(tim6_500hz_flag) {
-        tim6_500hz_flag = false;
+    for(;;) {
+        __disable_irq();
+        pending = tim6_500hz_pending;
+        if(pending > 0u) {
+            tim6_500hz_pending--;
+        }
+        __enable_irq();
+        if(pending == 0u) {
+            break;
+        }
         app_runtime_process();
     }
+
+    app_runtime_background();
 }
 
 #endif

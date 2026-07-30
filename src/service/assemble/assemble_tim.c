@@ -5,7 +5,7 @@
 
 // ! ========================= 变 量 声 明 ========================= ! //
 
-volatile bool tim6_500hz_flag = false;
+volatile uint32_t tim6_500hz_pending = 0u;
 
 // ! ========================= 私 有 函 数 声 明 ========================= ! //
 
@@ -26,5 +26,7 @@ SystemStatus assemble_tim6_500hz(void) {
 // ! ========================= 私 有 函 数 实 现 ========================= ! //
 
 static void tim6_callback(void) {
-    tim6_500hz_flag = true;
+    if(tim6_500hz_pending < UINT32_MAX) {
+        tim6_500hz_pending++;
+    }
 }

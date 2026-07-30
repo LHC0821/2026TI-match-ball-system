@@ -113,8 +113,7 @@ static void vision_comms_handle_command(const BinaryFrameView* frame);
 VisionCommsStatus vision_comms_init(const VisionCommsConfig* config) {
     s_initialized = false;
 
-    if(config == 0 || config->port_ops.write == 0 || config->port_ops.now_ms == 0 ||
-       config->online_timeout_ms == 0u) {
+    if(config == 0 || config->port_ops.write == 0 || config->port_ops.now_ms == 0) {
         return VISION_COMMS_STATUS_INVALID_PARAM;
     }
 
@@ -219,7 +218,7 @@ bool vision_comms_is_online(void) {
         return false;
     }
 
-    return (vision_comms_now_ms() - s_last_rx_ms) <= s_config.online_timeout_ms;
+    return true;
 }
 
 bool vision_comms_send_status(const VisionMcuStatus* status) {
@@ -230,13 +229,13 @@ bool vision_comms_send_status(const VisionMcuStatus* status) {
     }
 
     binary_frame_write_u32_le(&payload[0], status->stamp_ms);
-    binary_frame_write_i16_le(&payload[4], status->ball_mm);
-    binary_frame_write_i16_le(&payload[6], status->target_mm);
+    binary_frame_write_i16_le(&payload[4], status->offset_mm);
+    binary_frame_write_i16_le(&payload[6], status->offset_vel_mm_s);
     binary_frame_write_i16_le(&payload[8], status->motor_angle_mrad);
     binary_frame_write_i16_le(&payload[10], status->pitch_mrad);
     binary_frame_write_i16_le(&payload[12], status->acc_mm_s2);
     payload[14] = status->state;
-    payload[15] = status->mode;
+    payload[15] = status->reserved;
     payload[16] = status->flags;
     payload[17] = status->motor_error;
     binary_frame_write_u16_le(&payload[18], status->fault_flags);
@@ -400,7 +399,7 @@ static void vision_comms_handle_ball(const BinaryFrameView* frame) {
     s_ball.stamp_ms = vision_comms_now_ms();
     s_ball.capture_ms = binary_frame_read_u32_le(&frame->payload[0]);
     s_ball.frame_seq = binary_frame_read_u16_le(&frame->payload[4]);
-    s_ball.pos_m = binary_frame_mm_to_m(binary_frame_read_i16_le(&frame->payload[6]));
+    s_ball.offset_m = binary_frame_mm_to_m(binary_frame_read_i16_le(&frame->payload[6]));
     s_ball.quality = frame->payload[8];
     s_ball.valid = (flags & VISION_BALL_FLAG_VALID) != 0u;
     s_ball_pending = true;
@@ -408,7 +407,6 @@ static void vision_comms_handle_ball(const BinaryFrameView* frame) {
 
 static void vision_comms_handle_command(const BinaryFrameView* frame) {
     uint16_t command_flags;
-    uint8_t mode;
     uint8_t ack_status = 0u;
 
     if(frame == 0 || frame->payload_len != VISION_COMMAND_PAYLOAD_LEN) {
@@ -419,19 +417,11 @@ static void vision_comms_handle_command(const BinaryFrameView* frame) {
         return;
     }
 
-    mode = frame->payload[1];
-    if(mode > (uint8_t)BALANCE_MODE_SWEEP_TEST) {
-        ack_status = 2u;
-    }
-    else {
-        command_flags = binary_frame_read_u16_le(&frame->payload[6]);
-        s_command.enable = frame->payload[0] != 0u;
-        s_command.mode = (BalanceMode)mode;
-        s_command.target_m = binary_frame_mm_to_m(binary_frame_read_i16_le(&frame->payload[2]));
-        s_command.command_seq = binary_frame_read_u16_le(&frame->payload[4]);
-        s_command.clear_fault = (command_flags & VISION_CMD_FLAG_CLEAR_FAULT) != 0u;
-        s_command_pending = true;
-    }
+    command_flags = binary_frame_read_u16_le(&frame->payload[6]);
+    s_command.enable = frame->payload[0] != 0u;
+    s_command.command_seq = binary_frame_read_u16_le(&frame->payload[4]);
+    s_command.clear_fault = (command_flags & VISION_CMD_FLAG_CLEAR_FAULT) != 0u;
+    s_command_pending = true;
 
     if((frame->flags & BINARY_FRAME_FLAG_NEED_ACK) != 0u) {
         vision_comms_send_ack(VISION_MSG_COMMAND, frame->seq, ack_status);

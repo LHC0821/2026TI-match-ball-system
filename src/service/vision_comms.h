@@ -53,7 +53,6 @@ typedef struct {
  */
 typedef struct {
     VisionCommsPortOps port_ops;
-    uint32_t online_timeout_ms;
 } VisionCommsConfig;
 
 /**
@@ -70,13 +69,13 @@ typedef struct {
  */
 typedef struct {
     uint32_t stamp_ms;
-    int16_t ball_mm;
-    int16_t target_mm;
+    int16_t offset_mm;
+    int16_t offset_vel_mm_s;
     int16_t motor_angle_mrad;
     int16_t pitch_mrad;
     int16_t acc_mm_s2;
     uint8_t state;
-    uint8_t mode;
+    uint8_t reserved;
     uint8_t flags;
     uint8_t motor_error;
     uint16_t fault_flags;

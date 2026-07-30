@@ -657,6 +657,7 @@ static void dm_motor_reset_slot(DmMotorSlot* slot, uint16_t id) {
     slot->mode = DM_MOTOR_MODE_POS_VEL;
     slot->kp = DM_MOTOR_DEFAULT_KP;
     slot->kd = DM_MOTOR_DEFAULT_KD;
+    slot->torque = DM_MOTOR_DEFAULT_TORQUE;
     slot->feedback.id = id;
 }
 
@@ -751,9 +752,9 @@ static BusMotorStatus dm_motor_send_mit(uint16_t id, const DmMotorSlot* slot) {
 
     pos_bits = dm_motor_f32_to_u16(slot->position, -s_pos_limit, s_pos_limit, 16);
     spd_bits = dm_motor_f32_to_u16(slot->speed, -s_spd_limit, s_spd_limit, 12);
-    kp_bits = dm_motor_f32_to_u16(slot->kp, 0.0f, DM_MOTOR_KP_LIMIT, 12);
-    kd_bits = dm_motor_f32_to_u16(slot->kd, 0.0f, DM_MOTOR_KD_LIMIT, 12);
-    tor_bits = dm_motor_f32_to_u16(slot->torque, -s_tor_limit, s_tor_limit, 12);
+    kp_bits = dm_motor_f32_to_u16(DM_MOTOR_DEFAULT_KP, 0.0f, DM_MOTOR_KP_LIMIT, 12);
+    kd_bits = dm_motor_f32_to_u16(DM_MOTOR_DEFAULT_KD, 0.0f, DM_MOTOR_KD_LIMIT, 12);
+    tor_bits = dm_motor_f32_to_u16(DM_MOTOR_DEFAULT_TORQUE, -s_tor_limit, s_tor_limit, 12);
 
     data[0] = (uint8_t)(pos_bits >> 8);
     data[1] = (uint8_t)(pos_bits & 0xFFu);

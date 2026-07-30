@@ -7,7 +7,6 @@
  */
 
 #include "bus_motor/bus_motor.h"
-#include "pid.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -36,24 +35,13 @@ typedef enum {
 } BalanceState;
 
 /**
- * @brief BalanceMode 枚举类型
- */
-typedef enum {
-    BALANCE_MODE_HOLD_CENTER = 0,
-    BALANCE_MODE_HOLD_POS,
-    BALANCE_MODE_SWEEP_TEST,
-} BalanceMode;
-
-/**
  * @brief BalanceFault 枚举类型
  */
 typedef enum {
     BALANCE_FAULT_NONE = 0u,
-    BALANCE_FAULT_IMU_TIMEOUT = (1u << 0),
-    BALANCE_FAULT_MOTOR_TIMEOUT = (1u << 1),
-    BALANCE_FAULT_MOTOR_ERROR = (1u << 2),
-    BALANCE_FAULT_MOTOR_WRITE = (1u << 3),
-    BALANCE_FAULT_DATA_INVALID = (1u << 4),
+    BALANCE_FAULT_MOTOR_ERROR = (1u << 0),
+    BALANCE_FAULT_MOTOR_WRITE = (1u << 1),
+    BALANCE_FAULT_DATA_INVALID = (1u << 2),
 } BalanceFault;
 
 /**
@@ -66,25 +54,27 @@ typedef enum {
 } BalanceAxis;
 
 /**
- * @brief BalanceCtrl 枚举类型
+ * @brief BalanceCtrl 平衡控制通道位
  */
 typedef enum {
     BALANCE_CTRL_NONE = 0u,
     BALANCE_CTRL_LEVEL = (1u << 0),
     BALANCE_CTRL_ACC = (1u << 1),
     BALANCE_CTRL_VISION = (1u << 2),
-    BALANCE_CTRL_VISION_I = (1u << 3),
-    BALANCE_CTRL_ALL = 0x0Fu,
+    BALANCE_CTRL_ALL = 0x07u,
 } BalanceCtrl;
 
 /**
  * @brief BalanceVisionSample 结构体类型
+ *
+ * @details
+ * 视觉端发送的是球相对于期望位置的偏移量；MCU 只把零偏移作为控制目标
  */
 typedef struct {
     uint32_t stamp_ms;
     uint32_t capture_ms;
     uint16_t frame_seq;
-    float pos_m;
+    float offset_m;
     uint8_t quality;
     bool valid;
 } BalanceVisionSample;
@@ -95,8 +85,6 @@ typedef struct {
 typedef struct {
     bool enable;
     bool clear_fault;
-    BalanceMode mode;
-    float target_m;
     uint16_t command_seq;
 } BalanceCommand;
 
@@ -118,7 +106,6 @@ typedef struct {
     float motor_min_rad;
     float motor_max_rad;
     float motor_speed_rad_s;
-    float motor_rate_rad_s;
     float motor_sign;
 
     BalanceAxis acc_axis;
@@ -129,22 +116,9 @@ typedef struct {
     float acc_gain;
 
     float acc_tau_s;
-    float pos_tau_s;
-    float vel_tau_s;
-    PidConfig pos_pid;
-
-    float vision_angle_max_rad;
-    float vision_decay_tau_s;
-    float target_limit_m;
-    uint8_t vision_quality_min;
-    uint32_t vision_timeout_ms;
-    uint32_t imu_timeout_ms;
-    uint32_t motor_timeout_ms;
-
-    float sweep_pos_m;
-    float sweep_err_m;
-    float sweep_vel_m_s;
-    uint32_t sweep_stable_ms;
+    float vision_tau_s;
+    float vision_kp;
+    float vision_kd;
 
     uint32_t calib_settle_ms;
     uint16_t calib_samples;
@@ -154,39 +128,21 @@ typedef struct {
 
 /**
  * @brief BalanceTuneConfig 结构体类型
+ *
+ * @details
+ * 方向和 IMU 轴属于编译期安装配置，不通过无线调参修改
  */
 typedef struct {
     float motor_zero_rad;
     float motor_min_rad;
     float motor_max_rad;
     float motor_speed_rad_s;
-    float motor_rate_rad_s;
-    float motor_sign;
-
-    BalanceAxis acc_axis;
-    float acc_sign;
-    float pitch_sign;
-    float ball_sign;
     float level_gain;
     float acc_gain;
-
     float acc_tau_s;
-    float pos_tau_s;
-    float vel_tau_s;
-    PidConfig pos_pid;
-
-    float vision_angle_max_rad;
-    float vision_decay_tau_s;
-    float target_limit_m;
-    uint8_t vision_quality_min;
-    uint32_t vision_timeout_ms;
-
-    float sweep_pos_m;
-    float sweep_err_m;
-    float sweep_vel_m_s;
-    uint32_t sweep_stable_ms;
-
-    uint8_t ctrl_mask;
+    float vision_tau_s;
+    float vision_kp;
+    float vision_kd;
 } BalanceTuneConfig;
 
 /**
@@ -195,13 +151,11 @@ typedef struct {
 typedef struct {
     uint32_t stamp_ms;
     BalanceState state;
-    BalanceMode mode;
     uint32_t fault_flags;
 
-    float target_m;
-    float ball_raw_m;
-    float ball_pos_m;
-    float ball_vel_m_s;
+    float vision_offset_raw_m;
+    float vision_offset_m;
+    float vision_offset_vel_m_s;
     float pitch_rad;
     float acc_m_s2;
 
@@ -268,6 +222,12 @@ BalanceStatusCode balance_get_tune(BalanceTuneConfig* config);
  */
 BalanceStatusCode balance_apply_tune(const BalanceTuneConfig* config);
 /**
+ * @brief balance_set_ctrl_mask 接口函数
+ * @param ctrl_mask 平衡控制通道位掩码
+ * @return 状态码
+ */
+BalanceStatusCode balance_set_ctrl_mask(uint8_t ctrl_mask);
+/**
  * @brief balance_get_status 接口函数
  * @return 结果指针
  */
@@ -278,11 +238,5 @@ const BalanceStatus* balance_get_status(void);
  * @return 字符串指针
  */
 const char* balance_state_str(BalanceState state);
-/**
- * @brief balance_mode_str 接口函数
- * @param mode 工作模式
- * @return 字符串指针
- */
-const char* balance_mode_str(BalanceMode mode);
 
 #endif

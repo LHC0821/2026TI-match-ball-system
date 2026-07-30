@@ -21,14 +21,19 @@
 #define DM_MOTOR_MAX_ID 32u
 
 /**
- * @brief 达妙电机 AGV 转向场景默认位置环比例系数
+ * @brief DM-4340 MIT 模式推荐位置环比例系数
  */
 #define DM_MOTOR_DEFAULT_KP 3.0f
 
 /**
- * @brief 达妙电机 AGV 转向场景默认位置环微分系数
+ * @brief DM-4340 MIT 模式推荐位置环微分系数
  */
 #define DM_MOTOR_DEFAULT_KD 0.032f
+
+/**
+ * @brief DM-4340 MIT 模式固定前馈扭矩
+ */
+#define DM_MOTOR_DEFAULT_TORQUE 0.0f
 
 /**
  * @brief 达妙电机型号

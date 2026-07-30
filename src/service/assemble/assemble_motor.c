@@ -66,7 +66,7 @@ SystemStatus assemble_motor(void) {
     }
 
     config.ops = &s_motor_ops;
-    config.timeout_ms = 300u;
+    config.timeout_ms = 0u;
     config.retry_count = 0u;
     config.driver_config = &s_dm_config;
     if(bus_motor_init(&config) != MOTOR_STATUS_OK) {
