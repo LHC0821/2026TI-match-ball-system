@@ -49,12 +49,12 @@
 /**
  * @brief 摆杆电机应用位置下限，单位 rad
  */
-#define APP_CFG_MOTOR_MIN_RAD -0.88f
+#define APP_CFG_MOTOR_MIN_RAD -0.73f
 
 /**
  * @brief 摆杆电机应用位置上限，单位 rad
  */
-#define APP_CFG_MOTOR_MAX_RAD 0.68f
+#define APP_CFG_MOTOR_MAX_RAD 0.98f
 
 /**
  * @brief MIT 模式目标速度，单位 rad/s
