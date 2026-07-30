@@ -113,7 +113,7 @@
  * @par 可选项
  * 可选范围: > 0; tune range APP_TUNE_RATE_MIN_RAD_S..APP_TUNE_RATE_MAX_RAD_S.
  */
-#define APP_CFG_MOTOR_SPEED_RAD_S 1.0f
+#define APP_CFG_MOTOR_SPEED_RAD_S 3.14f
 
 /**
  * @brief 1.1.6 MCU 内部目标角变化率限制，单位 rad/s
@@ -127,7 +127,7 @@
  * @par 可选项
  * 可选范围: > 0; tune range APP_TUNE_RATE_MIN_RAD_S..APP_TUNE_RATE_MAX_RAD_S.
  */
-#define APP_CFG_MOTOR_RATE_RAD_S 1.5f
+#define APP_CFG_MOTOR_RATE_RAD_S 3.14f
 
 /**
  * @brief 1.1.7 控制角到电机方向的符号
@@ -347,7 +347,7 @@
  * @par 可选项
  * 可选范围: > 0; tune range APP_TUNE_ANGLE_MIN_RAD..APP_TUNE_ANGLE_MAX_RAD.
  */
-#define APP_CFG_POS_MAX_OUT_RAD 0.12f
+#define APP_CFG_POS_MAX_OUT_RAD 1.0f
 
 /**
  * @brief 1.4.7 球位 PID 积分分离阈值，单位 m
@@ -383,7 +383,7 @@
  * @par 可选项
  * 可选范围: 0..1; 0 is smoothest, 1 uses newest diff directly.
  */
-#define APP_CFG_POS_DIFF_ALPHA 0.20f
+#define APP_CFG_POS_DIFF_ALPHA 0.7f
 
 /**
  * @brief 1.4.10 球位 PID 输出变化率限制，单位 rad/s
@@ -394,7 +394,7 @@
  * @par 可选项
  * 可选范围: > 0; tune range APP_TUNE_RATE_MIN_RAD_S..APP_TUNE_RATE_MAX_RAD_S.
  */
-#define APP_CFG_POS_OUT_RATE_RAD_S 1.0f
+#define APP_CFG_POS_OUT_RATE_RAD_S 3.14f
 
 // ! ========================= 1.5 视 觉 闭 环 与 在 线 判 断 参 数 ========================= ! //
 
@@ -408,7 +408,7 @@
  * @par 可选项
  * 可选范围: > 0; tune range APP_TUNE_ANGLE_MIN_RAD..APP_TUNE_ANGLE_MAX_RAD.
  */
-#define APP_CFG_VISION_ANGLE_MAX_RAD 0.12f
+#define APP_CFG_VISION_ANGLE_MAX_RAD 1.0f
 
 /**
  * @brief 1.5.2 视觉失效后的修正角衰减时间常数，单位 s
@@ -505,7 +505,7 @@
  * @par 可选项
  * 可选范围: > 0 and < sweep_pos_m; tune range 0.0005f..APP_TUNE_TARGET_MAX_M.
  */
-#define APP_CFG_SWEEP_ERR_M 0.01f
+#define APP_CFG_SWEEP_ERR_M 0.001f
 
 /**
  * @brief 1.6.3 往返测试稳定球速阈值，单位 m/s
