@@ -133,6 +133,7 @@ bool vision_comms_take_command(BalanceCommand* command);
 bool vision_comms_get_heartbeat(VisionHeartbeat* heartbeat);
 /**
  * @brief vision_comms_is_online 接口函数
+ * @details 最近 500 ms 内收到过合法二进制帧时返回 true
  * @return true 表示成功或条件成立，false 表示失败或条件不成立
  */
 bool vision_comms_is_online(void);

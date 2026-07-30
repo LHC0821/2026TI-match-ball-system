@@ -20,6 +20,7 @@
 #define BALANCE_VISION_DEFAULT_DT_S (1.0f / 30.0f)
 #define BALANCE_VISION_DT_MIN_S 0.005f
 #define BALANCE_VISION_DT_MAX_S 0.10f
+#define BALANCE_VISION_TIMEOUT_MS 300u
 
 // ! ========================= 变 量 声 明 ========================= ! //
 
@@ -33,6 +34,7 @@ static bool s_fault_braked = false;
 static uint8_t s_motor_write_fail_count = 0u;
 static uint32_t s_state_enter_ms = 0u;
 static uint32_t s_last_valid_vision_ms = 0u;
+static uint32_t s_last_vision_ms = 0u;
 static uint32_t s_motor_enable_ms = 0u;
 static bool s_motor_cmd_ready = false;
 static bool s_return_zero_after_calib = false;
@@ -129,6 +131,11 @@ static void balance_clear_fault(void);
  */
 static void balance_update_motor_feedback(uint32_t now_ms);
 /**
+ * @brief 更新视觉通信和有效数据超时状态
+ * @param now_ms 当前时间，单位 ms
+ */
+static void balance_update_vision_timeout(uint32_t now_ms);
+/**
  * @brief balance_update_imu 内部辅助函数
  * @param dt_s 周期时间，单位 s
  */
@@ -202,6 +209,7 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
     s_motor_write_fail_count = 0u;
     s_state_enter_ms = 0u;
     s_last_valid_vision_ms = 0u;
+    s_last_vision_ms = 0u;
     s_motor_enable_ms = 0u;
     s_motor_cmd_ready = false;
     s_return_zero_after_calib = false;
@@ -239,6 +247,7 @@ void balance_process(float dt_s) {
     s_status.stamp_ms = now_ms;
     balance_update_motor_feedback(now_ms);
     balance_update_imu(dt_s);
+    balance_update_vision_timeout(now_ms);
 
     s_status.ball_loop_closed = s_status.state == BALANCE_STATE_ACTIVE &&
                                 s_status.vision_valid &&
@@ -327,6 +336,7 @@ void balance_set_vision(const BalanceVisionSample* sample) {
     }
 
     arrival_ms = balance_now_ms();
+    s_last_vision_ms = arrival_ms;
     s_status.vision_online = true;
     s_status.vision_offset_raw_m = sample->offset_m;
     s_status.vision_capture_ms = sample->capture_ms;
@@ -334,6 +344,9 @@ void balance_set_vision(const BalanceVisionSample* sample) {
 
     if(!sample->valid || !balance_value_valid(sample->offset_m)) {
         s_status.vision_valid = false;
+        s_status.vision_offset_m = 0.0f;
+        s_status.vision_offset_vel_m_s = 0.0f;
+        s_vision_filter_ready = false;
         s_vis_angle = 0.0f;
         return;
     }
@@ -628,6 +641,23 @@ static void balance_update_motor_feedback(uint32_t now_ms) {
         pid_reset(&s_motor_pos_i_pid);
     }
     s_status.motor_online = true;
+}
+
+static void balance_update_vision_timeout(uint32_t now_ms) {
+    if(s_last_vision_ms == 0u ||
+       (now_ms - s_last_vision_ms) > BALANCE_VISION_TIMEOUT_MS) {
+        s_status.vision_online = false;
+    }
+
+    if(s_last_valid_vision_ms == 0u ||
+       (now_ms - s_last_valid_vision_ms) > BALANCE_VISION_TIMEOUT_MS) {
+        s_status.vision_valid = false;
+        s_status.vision_offset_m = 0.0f;
+        s_status.vision_offset_vel_m_s = 0.0f;
+        s_vision_filter_ready = false;
+        s_vis_angle = 0.0f;
+        pid_reset(&s_vision_pid);
+    }
 }
 
 static void balance_update_imu(float dt_s) {

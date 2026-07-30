@@ -16,6 +16,7 @@
 #define VISION_PARSER_RING_SIZE 256u
 #define VISION_FRAME_BUF_SIZE 64u
 #define VISION_TX_BUF_SIZE 64u
+#define VISION_ONLINE_TIMEOUT_MS 500u
 
 #define VISION_HEARTBEAT_PAYLOAD_LEN 8u
 #define VISION_BALL_PAYLOAD_LEN 12u
@@ -218,7 +219,7 @@ bool vision_comms_is_online(void) {
         return false;
     }
 
-    return true;
+    return (vision_comms_now_ms() - s_last_rx_ms) <= VISION_ONLINE_TIMEOUT_MS;
 }
 
 bool vision_comms_send_status(const VisionMcuStatus* status) {
