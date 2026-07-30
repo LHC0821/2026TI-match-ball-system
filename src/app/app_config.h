@@ -161,7 +161,7 @@
 /**
  * @brief 车体俯仰水平补偿增益
  */
-#define APP_CFG_LEVEL_GAIN -1.0f
+#define APP_CFG_LEVEL_GAIN -11.5f
 
 /**
  * @brief 纵向加速度前馈补偿增益
