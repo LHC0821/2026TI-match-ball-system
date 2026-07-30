@@ -83,6 +83,7 @@ typedef struct {
     uint32_t capture_ms;
     uint16_t frame_seq;
     float offset_m;
+    float velocity_m_s;
     uint8_t quality;
     bool valid;
 } BalanceVisionSample;
@@ -131,7 +132,6 @@ typedef struct {
 
     float acc_tau_s;
     float vision_tau_s;
-    float vision_vel_tau_s;
     float vision_kp;
     float vision_ki;
     float vision_kd;
@@ -161,7 +161,6 @@ typedef struct {
     float acc_gain;
     float acc_tau_s;
     float vision_tau_s;
-    float vision_vel_tau_s;
     float vision_kp;
     float vision_ki;
     float vision_kd;

@@ -403,6 +403,7 @@ static void vision_comms_handle_ball(const BinaryFrameView* frame) {
     s_ball.offset_m = binary_frame_mm_to_m(binary_frame_read_i16_le(&frame->payload[6]));
     s_ball.quality = frame->payload[8];
     s_ball.valid = (flags & VISION_BALL_FLAG_VALID) != 0u;
+    s_ball.velocity_m_s = binary_frame_mm_to_m(binary_frame_read_i16_le(&frame->payload[10]));
     s_ball_pending = true;
 }
 

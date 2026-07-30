@@ -36,7 +36,6 @@ SystemStatus assemble_balance(void) {
         .acc_gain = APP_CFG_ACC_GAIN,
         .acc_tau_s = APP_CFG_ACC_TAU_S,
         .vision_tau_s = APP_CFG_VISION_TAU_S,
-        .vision_vel_tau_s = APP_CFG_VISION_VEL_TAU_S,
         .vision_kp = APP_CFG_VISION_KP,
         .vision_ki = APP_CFG_VISION_KI,
         .vision_kd = APP_CFG_VISION_KD,

@@ -140,13 +140,13 @@
  *
  * offset_filt = LPF(ball_sign * offset, vision_tau_s)
  *
- * offset_vel_filt = LPF(d(offset_filt) / dt, vision_vel_tau_s)
+ * offset_vel = ball_sign * vision_velocity
  *
  * vision_error = 0 - offset_filt
  *
  * vision_angle = vision_kp * vision_error
  *              + vision_ki * vision_integral
- *              - vision_kd * offset_vel_filt
+ *              - vision_kd * offset_vel
  *
  * motor_cmd_raw = motor_zero
  *               + motor_sign * (level_angle + acc_angle + vision_angle)
@@ -180,11 +180,6 @@
  * 0 表示直接使用视觉端最新有效偏移，避免视觉外环增加额外滞后
  */
 #define APP_CFG_VISION_TAU_S 0.0f
-
-/**
- * @brief 视觉偏移速度一阶低通时间常数，单位 s
- */
-#define APP_CFG_VISION_VEL_TAU_S 0.05f
 
 /**
  * @brief 视觉偏移比例增益
