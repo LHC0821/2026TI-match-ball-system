@@ -119,6 +119,7 @@ typedef struct {
     float motor_kp;
     float motor_kd;
     float motor_tor_nm;
+    float tor_pitch_gain;
     float motor_sign;
 
     BalanceAxis acc_axis;
@@ -130,7 +131,9 @@ typedef struct {
 
     float acc_tau_s;
     float vision_tau_s;
+    float vision_vel_tau_s;
     float vision_kp;
+    float vision_ki;
     float vision_kd;
 
     uint32_t calib_settle_ms;
@@ -153,11 +156,14 @@ typedef struct {
     float motor_kp;
     float motor_kd;
     float motor_tor_nm;
+    float tor_pitch_gain;
     float level_gain;
     float acc_gain;
     float acc_tau_s;
     float vision_tau_s;
+    float vision_vel_tau_s;
     float vision_kp;
+    float vision_ki;
     float vision_kd;
 } BalanceTuneConfig;
 
@@ -172,15 +178,23 @@ typedef struct {
     float vision_offset_raw_m;
     float vision_offset_m;
     float vision_offset_vel_m_s;
+    float pitch_raw_rad;
     float pitch_rad;
+    float acc_raw_m_s2;
+    float acc_linear_m_s2;
     float acc_m_s2;
 
     float level_angle_rad;
     float acc_angle_rad;
     float vision_angle_rad;
+    float vision_p_rad;
+    float vision_i_rad;
+    float vision_d_rad;
+    float motor_cmd_raw_rad;
     float motor_cmd_rad;
     float motor_pos_rad;
     float motor_spd_rad_s;
+    float motor_tor_ff_nm;
     uint32_t vision_capture_ms;
     uint16_t vision_frame_seq;
     uint16_t command_seq;
@@ -194,6 +208,7 @@ typedef struct {
     bool vision_online;
     bool vision_valid;
     bool ball_loop_closed;
+    bool motor_cmd_saturated;
 } BalanceStatus;
 
 // ! ========================= 接 口 函 数 声 明 ========================= ! //

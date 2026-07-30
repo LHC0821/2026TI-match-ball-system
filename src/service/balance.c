@@ -7,7 +7,6 @@
 
 #include "imu/imu.h"
 #include "log.h"
-#include "pid.h"
 
 #include <math.h>
 #include <string.h>
@@ -26,7 +25,6 @@
 
 static BalanceConfig s_config = { 0 };
 static BalanceStatus s_status = { 0 };
-static Pid s_vision_pid = { 0 };
 static bool s_initialized = false;
 static bool s_motor_prepared = false;
 static bool s_enable_requested = false;
@@ -47,6 +45,7 @@ static float s_acc_filt = 0.0f;
 static float s_vision_filt = 0.0f;
 static float s_vision_prev = 0.0f;
 static float s_vision_vel = 0.0f;
+static float s_vision_integral = 0.0f;
 static float s_vis_angle = 0.0f;
 static bool s_vision_filter_ready = false;
 
@@ -104,9 +103,9 @@ static bool balance_motor_fault(uint8_t error_code);
  */
 static bool balance_tune_valid(const BalanceTuneConfig* config);
 /**
- * @brief balance_init_vision_pid 内部辅助函数
+ * @brief balance_reset_vision_control 内部辅助函数
  */
-static void balance_init_vision_pid(void);
+static void balance_reset_vision_control(void);
 /**
  * @brief balance_set_state 内部辅助函数
  * @param state 状态值
@@ -172,7 +171,8 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
        config->motor_sign == 0.0f ||
        config->acc_sign == 0.0f || config->pitch_sign == 0.0f ||
        config->ball_sign == 0.0f || config->acc_tau_s < 0.0f ||
-       config->vision_tau_s < 0.0f || config->calib_samples == 0u) {
+       config->vision_tau_s < 0.0f || config->vision_vel_tau_s < 0.0f ||
+       config->calib_samples == 0u) {
         return BALANCE_STATUS_INVALID_PARAM;
     }
     if(config->acc_axis > BALANCE_AXIS_Z ||
@@ -184,6 +184,7 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
        !balance_value_valid(config->motor_kp) ||
        !balance_value_valid(config->motor_kd) ||
        !balance_value_valid(config->motor_tor_nm) ||
+       !balance_value_valid(config->tor_pitch_gain) ||
        !balance_value_valid(config->motor_sign) ||
        !balance_value_valid(config->acc_sign) ||
        !balance_value_valid(config->pitch_sign) ||
@@ -192,7 +193,9 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
        !balance_value_valid(config->acc_gain) ||
        !balance_value_valid(config->acc_tau_s) ||
        !balance_value_valid(config->vision_tau_s) ||
+       !balance_value_valid(config->vision_vel_tau_s) ||
        !balance_value_valid(config->vision_kp) ||
+       !balance_value_valid(config->vision_ki) ||
        !balance_value_valid(config->vision_kd)) {
         return BALANCE_STATUS_INVALID_PARAM;
     }
@@ -202,7 +205,7 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
 
     s_config = *config;
     memset(&s_status, 0, sizeof(s_status));
-    balance_init_vision_pid();
+    balance_reset_vision_control();
 
     s_enable_requested = s_config.auto_enable;
     s_motor_prepared = false;
@@ -224,6 +227,7 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
     s_vision_filt = 0.0f;
     s_vision_prev = 0.0f;
     s_vision_vel = 0.0f;
+    s_vision_integral = 0.0f;
     s_vis_angle = 0.0f;
     s_vision_filter_ready = false;
     s_motor_rx_ms = 0u;
@@ -232,6 +236,7 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
     s_motor_rx_error = 0u;
 
     s_status.motor_cmd_rad = s_config.motor_zero_rad;
+    s_status.motor_cmd_raw_rad = s_config.motor_zero_rad;
     s_status.ctrl_mask = s_config.ctrl_mask;
     s_initialized = true;
     balance_set_state(BALANCE_STATE_CALIB);
@@ -272,6 +277,7 @@ void balance_process(float dt_s) {
                 s_acc_zero = s_acc_sum / (float)s_calib_count;
                 s_acc_filt = 0.0f;
                 s_status.motor_cmd_rad = s_config.motor_zero_rad;
+                s_status.motor_cmd_raw_rad = s_config.motor_zero_rad;
                 s_return_zero_after_calib = true;
                 if(!s_config.port_ops.prepare_motor(s_config.motor_id)) {
                     balance_raise_fault(BALANCE_FAULT_MOTOR_WRITE);
@@ -306,6 +312,7 @@ void balance_process(float dt_s) {
         }
         if(!s_motor_cmd_ready) {
             s_status.motor_cmd_rad = s_status.motor_pos_rad;
+            s_status.motor_cmd_raw_rad = s_status.motor_pos_rad;
             s_motor_cmd_ready = true;
         }
         balance_send_motor(now_ms);
@@ -321,12 +328,14 @@ void balance_process(float dt_s) {
     if(!s_motor_cmd_ready) {
         if(s_return_zero_after_calib) {
             s_status.motor_cmd_rad = s_config.motor_zero_rad;
+            s_status.motor_cmd_raw_rad = s_config.motor_zero_rad;
             s_return_zero_after_calib = false;
             s_motor_cmd_ready = true;
             balance_send_motor(now_ms);
             return;
         }
         s_status.motor_cmd_rad = s_status.motor_pos_rad;
+        s_status.motor_cmd_raw_rad = s_status.motor_pos_rad;
         s_motor_cmd_ready = true;
     }
 
@@ -341,6 +350,9 @@ void balance_set_vision(const BalanceVisionSample* sample) {
     float offset;
     float alpha_pos;
     float offset_vel;
+    float vision_error;
+    float integral_direction;
+    bool allow_integral;
 
     if(!s_initialized || sample == 0) {
         return;
@@ -358,7 +370,7 @@ void balance_set_vision(const BalanceVisionSample* sample) {
         s_status.vision_offset_m = 0.0f;
         s_status.vision_offset_vel_m_s = 0.0f;
         s_vision_filter_ready = false;
-        s_vis_angle = 0.0f;
+        balance_reset_vision_control();
         return;
     }
 
@@ -371,7 +383,7 @@ void balance_set_vision(const BalanceVisionSample* sample) {
         s_vision_vel = 0.0f;
         s_vision_filter_ready = true;
         dt_s = BALANCE_VISION_DEFAULT_DT_S;
-        pid_reset(&s_vision_pid);
+        balance_reset_vision_control();
     }
     else {
         if(s_last_valid_vision_ms != 0u && arrival_ms > s_last_valid_vision_ms) {
@@ -389,18 +401,45 @@ void balance_set_vision(const BalanceVisionSample* sample) {
     alpha_pos = dt_s / (s_config.vision_tau_s + dt_s);
     s_vision_filt += alpha_pos * (offset - s_vision_filt);
     offset_vel = (s_vision_filt - s_vision_prev) / dt_s;
-    s_vision_vel = offset_vel;
+    s_vision_vel = balance_lpf(offset_vel,
+                               s_vision_vel,
+                               s_config.vision_vel_tau_s,
+                               dt_s);
     s_vision_prev = s_vision_filt;
 
     s_status.vision_offset_m = s_vision_filt;
     s_status.vision_offset_vel_m_s = s_vision_vel;
     s_status.vision_valid = true;
-    if((s_config.ctrl_mask & BALANCE_CTRL_VISION) != 0u) {
-        s_vis_angle = pid_calculate(&s_vision_pid, 0.0f, s_vision_filt, dt_s);
+    if(s_enable_requested &&
+       (s_config.ctrl_mask & BALANCE_CTRL_VISION) != 0u) {
+        vision_error = -s_vision_filt;
+        allow_integral = true;
+        integral_direction = s_config.motor_sign *
+                             s_config.vision_ki *
+                             vision_error;
+        if(s_status.motor_cmd_saturated) {
+            if(s_status.motor_cmd_raw_rad > s_status.motor_cmd_rad &&
+               integral_direction > 0.0f) {
+                allow_integral = false;
+            }
+            if(s_status.motor_cmd_raw_rad < s_status.motor_cmd_rad &&
+               integral_direction < 0.0f) {
+                allow_integral = false;
+            }
+        }
+        if(allow_integral) {
+            s_vision_integral += vision_error * dt_s;
+        }
+
+        s_status.vision_p_rad = s_config.vision_kp * vision_error;
+        s_status.vision_i_rad = s_config.vision_ki * s_vision_integral;
+        s_status.vision_d_rad = -s_config.vision_kd * s_vision_vel;
+        s_vis_angle = s_status.vision_p_rad +
+                      s_status.vision_i_rad +
+                      s_status.vision_d_rad;
     }
     else {
-        pid_reset(&s_vision_pid);
-        s_vis_angle = 0.0f;
+        balance_reset_vision_control();
     }
 }
 
@@ -412,6 +451,9 @@ void balance_set_command(const BalanceCommand* command) {
     s_enable_requested = command->enable;
     s_status.enable_requested = s_enable_requested;
     s_status.command_seq = command->command_seq;
+    if(!s_enable_requested) {
+        balance_reset_vision_control();
+    }
 
     if(command->clear_fault) {
         balance_clear_fault();
@@ -430,11 +472,14 @@ BalanceStatusCode balance_get_tune(BalanceTuneConfig* config) {
     config->motor_kp = s_config.motor_kp;
     config->motor_kd = s_config.motor_kd;
     config->motor_tor_nm = s_config.motor_tor_nm;
+    config->tor_pitch_gain = s_config.tor_pitch_gain;
     config->level_gain = s_config.level_gain;
     config->acc_gain = s_config.acc_gain;
     config->acc_tau_s = s_config.acc_tau_s;
     config->vision_tau_s = s_config.vision_tau_s;
+    config->vision_vel_tau_s = s_config.vision_vel_tau_s;
     config->vision_kp = s_config.vision_kp;
+    config->vision_ki = s_config.vision_ki;
     config->vision_kd = s_config.vision_kd;
     return BALANCE_STATUS_OK;
 }
@@ -451,17 +496,19 @@ BalanceStatusCode balance_apply_tune(const BalanceTuneConfig* config) {
     s_config.motor_kp = config->motor_kp;
     s_config.motor_kd = config->motor_kd;
     s_config.motor_tor_nm = config->motor_tor_nm;
+    s_config.tor_pitch_gain = config->tor_pitch_gain;
     s_config.level_gain = config->level_gain;
     s_config.acc_gain = config->acc_gain;
     s_config.acc_tau_s = config->acc_tau_s;
     s_config.vision_tau_s = config->vision_tau_s;
+    s_config.vision_vel_tau_s = config->vision_vel_tau_s;
     s_config.vision_kp = config->vision_kp;
+    s_config.vision_ki = config->vision_ki;
     s_config.vision_kd = config->vision_kd;
     s_status.motor_cmd_rad = balance_clamp(s_status.motor_cmd_rad,
                                            s_config.motor_min_rad,
                                            s_config.motor_max_rad);
-    balance_init_vision_pid();
-    s_vis_angle = 0.0f;
+    balance_reset_vision_control();
     return BALANCE_STATUS_OK;
 }
 
@@ -473,8 +520,7 @@ BalanceStatusCode balance_set_ctrl_mask(uint8_t ctrl_mask) {
     s_config.ctrl_mask = ctrl_mask;
     s_status.ctrl_mask = ctrl_mask;
     if((ctrl_mask & BALANCE_CTRL_VISION) == 0u) {
-        pid_reset(&s_vision_pid);
-        s_vis_angle = 0.0f;
+        balance_reset_vision_control();
     }
 
     log_info("TUNE CTRL mask=0x%02X level=%u acc=%u vision=%u",
@@ -498,6 +544,8 @@ BalanceStatusCode balance_set_motor_angle(float angle_rad) {
     }
 
     s_status.motor_cmd_rad = angle_rad;
+    s_status.motor_cmd_raw_rad = angle_rad;
+    s_status.motor_cmd_saturated = false;
     s_motor_cmd_ready = true;
     return BALANCE_STATUS_OK;
 }
@@ -598,11 +646,14 @@ static bool balance_tune_valid(const BalanceTuneConfig* config) {
            balance_value_valid(config->motor_kp) &&
            balance_value_valid(config->motor_kd) &&
            balance_value_valid(config->motor_tor_nm) &&
+           balance_value_valid(config->tor_pitch_gain) &&
            balance_value_valid(config->level_gain) &&
            balance_value_valid(config->acc_gain) &&
            balance_value_valid(config->acc_tau_s) &&
            balance_value_valid(config->vision_tau_s) &&
+           balance_value_valid(config->vision_vel_tau_s) &&
            balance_value_valid(config->vision_kp) &&
+           balance_value_valid(config->vision_ki) &&
            balance_value_valid(config->vision_kd) &&
            config->motor_min_rad < config->motor_max_rad &&
            config->motor_zero_rad >= config->motor_min_rad &&
@@ -614,18 +665,17 @@ static bool balance_tune_valid(const BalanceTuneConfig* config) {
            config->motor_kd <= BALANCE_MOTOR_KD_MAX &&
            fabsf(config->motor_tor_nm) <= BALANCE_MOTOR_TOR_MAX_NM &&
            config->acc_tau_s >= 0.0f &&
-           config->vision_tau_s >= 0.0f;
+           config->vision_tau_s >= 0.0f &&
+           config->vision_vel_tau_s >= 0.0f;
 }
 
-static void balance_init_vision_pid(void) {
-    PidConfig config = { 0 };
-
-    config.mode = PID_MODE_PD;
-    config.features = PID_FEAT_DIFF_ON_MEAS;
-    config.kp = s_config.vision_kp;
-    config.ki = 0.0f;
-    config.kd = s_config.vision_kd;
-    pid_init_cfg(&s_vision_pid, &config);
+static void balance_reset_vision_control(void) {
+    s_vision_integral = 0.0f;
+    s_status.vision_p_rad = 0.0f;
+    s_status.vision_i_rad = 0.0f;
+    s_status.vision_d_rad = 0.0f;
+    s_status.vision_angle_rad = 0.0f;
+    s_vis_angle = 0.0f;
 }
 
 static void balance_set_state(BalanceState state) {
@@ -646,8 +696,7 @@ static void balance_clear_fault(void) {
     s_status.fault_flags = BALANCE_FAULT_NONE;
     s_fault_braked = false;
     s_motor_write_fail_count = 0u;
-    balance_init_vision_pid();
-    s_vis_angle = 0.0f;
+    balance_reset_vision_control();
     balance_set_state(s_enable_requested ? BALANCE_STATE_ACTIVE : BALANCE_STATE_READY);
 }
 
@@ -681,8 +730,7 @@ static void balance_update_vision_timeout(uint32_t now_ms) {
         s_status.vision_offset_m = 0.0f;
         s_status.vision_offset_vel_m_s = 0.0f;
         s_vision_filter_ready = false;
-        s_vis_angle = 0.0f;
-        pid_reset(&s_vision_pid);
+        balance_reset_vision_control();
     }
 }
 
@@ -711,6 +759,8 @@ static void balance_update_imu(float dt_s) {
     }
 
     s_status.imu_online = true;
+    s_status.pitch_raw_rad = pitch;
+    s_status.acc_raw_m_s2 = acc_axis;
     s_status.pitch_rad = pitch;
     s_status.acc_m_s2 = acc_axis;
 
@@ -722,6 +772,7 @@ static void balance_update_imu(float dt_s) {
     acc_linear = acc_axis - s_acc_zero + BALANCE_GRAVITY_M_S2 * sinf(pitch_rel);
     s_acc_filt = balance_lpf(acc_linear, s_acc_filt, s_config.acc_tau_s, dt_s);
     s_status.pitch_rad = pitch_rel;
+    s_status.acc_linear_m_s2 = acc_linear;
     s_status.acc_m_s2 = s_acc_filt;
 }
 
@@ -750,9 +801,11 @@ static void balance_update_control(float dt_s) {
 
     target_angle = s_config.motor_zero_rad + s_config.motor_sign *
                    (level_angle + acc_angle + vision_angle);
+    s_status.motor_cmd_raw_rad = target_angle;
     s_status.motor_cmd_rad = balance_clamp(target_angle,
                                            s_config.motor_min_rad,
                                            s_config.motor_max_rad);
+    s_status.motor_cmd_saturated = s_status.motor_cmd_rad != target_angle;
 }
 
 static void balance_enable_motor(uint32_t now_ms) {
@@ -783,17 +836,24 @@ static void balance_enable_motor(uint32_t now_ms) {
 
 static void balance_send_motor(uint32_t now_ms) {
     BusMotorStatus status;
+    float tor_ff;
 
     (void)now_ms;
     if(!s_motor_prepared) {
         return;
     }
+    tor_ff = s_config.motor_tor_nm +
+             s_config.tor_pitch_gain * s_status.pitch_rad;
+    tor_ff = balance_clamp(tor_ff,
+                           -BALANCE_MOTOR_TOR_MAX_NM,
+                           BALANCE_MOTOR_TOR_MAX_NM);
+    s_status.motor_tor_ff_nm = tor_ff;
     status = bus_motor.set_mit(s_config.motor_id,
                                s_status.motor_cmd_rad,
                                s_config.motor_vel_rad_s,
                                s_config.motor_kp,
                                s_config.motor_kd,
-                               s_config.motor_tor_nm);
+                               tor_ff);
     if(status == MOTOR_STATUS_OK) {
         s_motor_write_fail_count = 0u;
         return;

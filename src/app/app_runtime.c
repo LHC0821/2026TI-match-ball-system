@@ -183,37 +183,52 @@ static void app_runtime_update_rgb(void) {
 static void app_runtime_log_status(void) {
     const BalanceStatus* status = balance_get_status();
     const AppTuneStatus* tune = app_tune_get_status();
+    BalanceTuneConfig config = { 0 };
     VisionCommsStats stats;
 
+    (void)balance_get_tune(&config);
     vision_comms_get_stats(&stats);
     log_info("--------------------");
-    log_info("BAL state=%s en=%u loop=%s offset=%.3f offset_v=%.3f pitch=%.3f acc=%.3f",
+    log_info("BAL state=%s en=%u loop=%s mon=%u men=%u err=0x%X fault=0x%08lX vrx=%lu vcrc=%lu",
              balance_state_str(status->state),
              status->enable_requested ? 1u : 0u,
              status->ball_loop_closed ? "CLOSED" : "OPEN",
-             status->vision_offset_m,
-             status->vision_offset_vel_m_s,
-             status->pitch_rad,
-             status->acc_m_s2);
-    log_info("BAL ctrl mask=0x%02X level=%u acc=%u vision=%u",
-             status->ctrl_mask,
-             (status->ctrl_mask & BALANCE_CTRL_LEVEL) != 0u ? 1u : 0u,
-             (status->ctrl_mask & BALANCE_CTRL_ACC) != 0u ? 1u : 0u,
-             (status->ctrl_mask & BALANCE_CTRL_VISION) != 0u ? 1u : 0u);
-    log_info("BAL angle level=%.3f acc=%.3f vis=%.3f cmd=%.3f pos=%.3f merr=%.3f spd=%.3f mon=%u men=%u err=0x%X fault=0x%08lX vrx=%lu vcrc=%lu",
-             status->level_angle_rad,
-             status->acc_angle_rad,
-             status->vision_angle_rad,
-             status->motor_cmd_rad,
-             status->motor_pos_rad,
-             status->motor_cmd_rad - status->motor_pos_rad,
-             status->motor_spd_rad_s,
              status->motor_online ? 1u : 0u,
              status->motor_enabled ? 1u : 0u,
              status->motor_error,
              (unsigned long)status->fault_flags,
              (unsigned long)stats.rx_frame_count,
              (unsigned long)stats.rx_bad_crc_count);
+    log_info("IMU pitch_raw=%.4f pitch_rel=%.4f acc_raw=%.4f acc_linear=%.4f acc_filt=%.4f",
+             status->pitch_raw_rad,
+             status->pitch_rad,
+             status->acc_raw_m_s2,
+             status->acc_linear_m_s2,
+             status->acc_m_s2);
+    log_info("VISION raw=%.4f filt=%.4f vel=%.4f p=%.4f i=%.4f d=%.4f out=%.4f",
+             status->vision_offset_raw_m,
+             status->vision_offset_m,
+             status->vision_offset_vel_m_s,
+             status->vision_p_rad,
+             status->vision_i_rad,
+             status->vision_d_rad,
+             status->vision_angle_rad);
+    log_info("CTRL mask=0x%02X level=%.4f acc=%.4f vision=%.4f cmd_raw=%.4f cmd=%.4f sat=%u",
+             status->ctrl_mask,
+             status->level_angle_rad,
+             status->acc_angle_rad,
+             status->vision_angle_rad,
+             status->motor_cmd_raw_rad,
+             status->motor_cmd_rad,
+             status->motor_cmd_saturated ? 1u : 0u);
+    log_info("MIT pos_des=%.4f pos_err=%.4f vel_des=%.4f vel=%.4f kp=%.4f kd=%.4f tor=%.4f",
+             status->motor_cmd_rad,
+             status->motor_cmd_rad - status->motor_pos_rad,
+             config.motor_vel_rad_s,
+             status->motor_spd_rad_s,
+             config.motor_kp,
+             config.motor_kd,
+             status->motor_tor_ff_nm);
     log_info("TUNE state=%s seq=%u rx=%lu apply=%lu reject=%lu overflow=%lu",
              app_tune_state_str(tune->state),
              tune->session_seq,

@@ -77,6 +77,11 @@
 #define APP_CFG_MOTOR_TOR_NM 0.0f
 
 /**
+ * @brief MIT 姿态扭矩补偿增益，单位 N*m/rad
+ */
+#define APP_CFG_TOR_PITCH_GAIN 0.0f
+
+/**
  * @brief 控制角到电机方向的符号
  */
 #define APP_CFG_MOTOR_SIGN 1.0f
@@ -123,22 +128,32 @@
  * @details
  * MCU 端控制输出公式为：
  *
- * motor_cmd = clamp(motor_zero + motor_sign * (level_angle + acc_angle + vision_angle),
- *                   motor_min, motor_max)
- *
- * level_angle = level_gain * pitch_rel
- *
  * pitch_rel = pitch - pitch_zero
  *
- * acc_filt = LPF(acc_axis - acc_zero + gravity * sin(pitch_rel), acc_tau_s)
+ * acc_linear = acc_axis - acc_zero + gravity * sin(pitch_rel)
+ *
+ * acc_filt = LPF(acc_linear, acc_tau_s)
+ *
+ * level_angle = level_gain * pitch_rel
  *
  * acc_angle = acc_gain * atan2(acc_filt, gravity)
  *
  * offset_filt = LPF(ball_sign * offset, vision_tau_s)
  *
- * offset_vel = d(offset_filt) / dt
+ * offset_vel_filt = LPF(d(offset_filt) / dt, vision_vel_tau_s)
  *
- * vision_angle = vision_kp * (0 - offset_filt) + vision_kd * (0 - offset_vel)
+ * vision_error = 0 - offset_filt
+ *
+ * vision_angle = vision_kp * vision_error
+ *              + vision_ki * vision_integral
+ *              - vision_kd * offset_vel_filt
+ *
+ * motor_cmd_raw = motor_zero
+ *               + motor_sign * (level_angle + acc_angle + vision_angle)
+ *
+ * motor_cmd = clamp(motor_cmd_raw, motor_min, motor_max)
+ *
+ * tor_ff = clamp(motor_tor + tor_pitch_gain * pitch_rel, -28, 28)
  *
  * 其中 offset 是视觉端相对期望位置的偏移，MCU 不保存绝对保持位置
  */
@@ -167,9 +182,19 @@
 #define APP_CFG_VISION_TAU_S 0.0f
 
 /**
+ * @brief 视觉偏移速度一阶低通时间常数，单位 s
+ */
+#define APP_CFG_VISION_VEL_TAU_S 0.05f
+
+/**
  * @brief 视觉偏移比例增益
  */
 #define APP_CFG_VISION_KP 1.8f
+
+/**
+ * @brief 视觉偏移积分增益
+ */
+#define APP_CFG_VISION_KI 0.0f
 
 /**
  * @brief 视觉偏移微分增益
