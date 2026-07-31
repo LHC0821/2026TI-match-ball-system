@@ -64,12 +64,12 @@
 /**
  * @brief MIT 模式位置比例系数
  */
-#define APP_CFG_MOTOR_KP 80.0f
+#define APP_CFG_MOTOR_KP 10.0f
 
 /**
  * @brief MIT 模式位置微分系数
  */
-#define APP_CFG_MOTOR_KD 1.05f
+#define APP_CFG_MOTOR_KD 0.1f
 
 /**
  * @brief MIT 模式前馈扭矩，单位 N*m
@@ -132,7 +132,9 @@
  *
  * acc_linear = acc_axis - acc_zero + gravity * sin(pitch_rel)
  *
- * acc_filt = LPF(acc_linear, acc_tau_s)
+ * acc_tau = reverse_mode ? acc_reverse_tau_s : acc_tau_s
+ *
+ * acc_filt = LPF(acc_linear, acc_tau)
  *
  * level_angle = level_gain * pitch_rel
  *
@@ -144,9 +146,11 @@
  *
  * vision_error = 0 - offset_filt
  *
- * vision_angle = vision_kp * vision_error
- *              + vision_ki * vision_integral
- *              - vision_kd * offset_vel
+ * vision_raw = vision_kp * vision_error
+ *            + vision_ki * vision_integral
+ *            - vision_kd * offset_vel
+ *
+ * vision_angle = clamp(vision_raw, -vision_max_angle, vision_max_angle)
  *
  * motor_cmd_raw = motor_zero
  *               + motor_sign * (level_angle + acc_angle + vision_angle)
@@ -166,12 +170,22 @@
 /**
  * @brief 纵向加速度前馈补偿增益
  */
-#define APP_CFG_ACC_GAIN -1.0f
+#define APP_CFG_ACC_GAIN 15.0f
 
 /**
  * @brief 加速度一阶低通时间常数，单位 s
  */
-#define APP_CFG_ACC_TAU_S 0.08f
+#define APP_CFG_ACC_TAU_S 0.1f
+
+/**
+ * @brief 加速度反向快速滤波时间常数，单位 s
+ */
+#define APP_CFG_ACC_REVERSE_TAU_S 0.05f
+
+/**
+ * @brief 加速度反向快速滤波进入阈值，单位 m/s2
+ */
+#define APP_CFG_ACC_REVERSE_THRESHOLD_M_S2 0.1f
 
 /**
  * @brief 视觉偏移一阶低通时间常数，单位 s
@@ -195,6 +209,11 @@
  * @brief 视觉偏移微分增益
  */
 #define APP_CFG_VISION_KD 0.35f
+
+/**
+ * @brief 视觉控制角度限幅，单位 rad
+ */
+#define APP_CFG_VISION_MAX_ANGLE_RAD 0.05236f
 
 // ! ========================= 4. 启 动 校 准 参 数 ========================= ! //
 

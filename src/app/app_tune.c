@@ -395,10 +395,13 @@ static void app_tune_defaults(BalanceTuneConfig* config) {
     config->level_gain = APP_CFG_LEVEL_GAIN;
     config->acc_gain = APP_CFG_ACC_GAIN;
     config->acc_tau_s = APP_CFG_ACC_TAU_S;
+    config->acc_reverse_tau_s = APP_CFG_ACC_REVERSE_TAU_S;
+    config->acc_reverse_threshold_m_s2 = APP_CFG_ACC_REVERSE_THRESHOLD_M_S2;
     config->vision_tau_s = APP_CFG_VISION_TAU_S;
     config->vision_kp = APP_CFG_VISION_KP;
     config->vision_ki = APP_CFG_VISION_KI;
     config->vision_kd = APP_CFG_VISION_KD;
+    config->vision_max_angle_rad = APP_CFG_VISION_MAX_ANGLE_RAD;
 }
 
 static bool app_tune_valid(const BalanceTuneConfig* config) {
@@ -417,10 +420,13 @@ static bool app_tune_valid(const BalanceTuneConfig* config) {
            isfinite(config->level_gain) != 0 &&
            isfinite(config->acc_gain) != 0 &&
            isfinite(config->acc_tau_s) != 0 &&
+           isfinite(config->acc_reverse_tau_s) != 0 &&
+           isfinite(config->acc_reverse_threshold_m_s2) != 0 &&
            isfinite(config->vision_tau_s) != 0 &&
            isfinite(config->vision_kp) != 0 &&
            isfinite(config->vision_ki) != 0 &&
            isfinite(config->vision_kd) != 0 &&
+           isfinite(config->vision_max_angle_rad) != 0 &&
            config->motor_min_rad < config->motor_max_rad &&
            config->motor_zero_rad >= config->motor_min_rad &&
            config->motor_zero_rad <= config->motor_max_rad &&
@@ -431,7 +437,10 @@ static bool app_tune_valid(const BalanceTuneConfig* config) {
            config->motor_kd <= BALANCE_MOTOR_KD_MAX &&
            fabsf(config->motor_tor_nm) <= BALANCE_MOTOR_TOR_MAX_NM &&
            config->acc_tau_s >= 0.0f &&
-           config->vision_tau_s >= 0.0f;
+           config->acc_reverse_tau_s >= 0.0f &&
+           config->acc_reverse_threshold_m_s2 >= 0.0f &&
+           config->vision_tau_s >= 0.0f &&
+           config->vision_max_angle_rad >= 0.0f;
 }
 
 static void app_tune_handle_line(char* line) {
@@ -583,6 +592,10 @@ static bool app_tune_set_param(const char* name, const char* text) {
         s_pending.acc_gain = value;
     else if(app_tune_eq(name, "ACC_TAU"))
         s_pending.acc_tau_s = value;
+    else if(app_tune_eq(name, "ACC_REVERSE_TAU"))
+        s_pending.acc_reverse_tau_s = value;
+    else if(app_tune_eq(name, "ACC_REVERSE_THRESHOLD"))
+        s_pending.acc_reverse_threshold_m_s2 = value;
     else if(app_tune_eq(name, "VISION_TAU"))
         s_pending.vision_tau_s = value;
     else if(app_tune_eq(name, "VISION_KP"))
@@ -591,6 +604,8 @@ static bool app_tune_set_param(const char* name, const char* text) {
         s_pending.vision_ki = value;
     else if(app_tune_eq(name, "VISION_KD"))
         s_pending.vision_kd = value;
+    else if(app_tune_eq(name, "VISION_MAX_ANGLE"))
+        s_pending.vision_max_angle_rad = value;
     else if(app_tune_eq(name, "MOTOR_VEL"))
         s_pending.motor_vel_rad_s = value;
     else if(app_tune_eq(name, "MOTOR_KP"))
@@ -648,6 +663,10 @@ static bool app_tune_get_param(const char* name) {
         app_tune_reply("ACC_GAIN=%.6f", s_pending.acc_gain);
     else if(app_tune_eq(name, "ACC_TAU"))
         app_tune_reply("ACC_TAU=%.6f s", s_pending.acc_tau_s);
+    else if(app_tune_eq(name, "ACC_REVERSE_TAU"))
+        app_tune_reply("ACC_REVERSE_TAU=%.6f s", s_pending.acc_reverse_tau_s);
+    else if(app_tune_eq(name, "ACC_REVERSE_THRESHOLD"))
+        app_tune_reply("ACC_REVERSE_THRESHOLD=%.6f m/s2", s_pending.acc_reverse_threshold_m_s2);
     else if(app_tune_eq(name, "VISION_TAU"))
         app_tune_reply("VISION_TAU=%.6f s", s_pending.vision_tau_s);
     else if(app_tune_eq(name, "VISION_KP"))
@@ -656,6 +675,8 @@ static bool app_tune_get_param(const char* name) {
         app_tune_reply("VISION_KI=%.6f", s_pending.vision_ki);
     else if(app_tune_eq(name, "VISION_KD"))
         app_tune_reply("VISION_KD=%.6f", s_pending.vision_kd);
+    else if(app_tune_eq(name, "VISION_MAX_ANGLE"))
+        app_tune_reply("VISION_MAX_ANGLE=%.6f rad", s_pending.vision_max_angle_rad);
     else if(app_tune_eq(name, "MOTOR_VEL"))
         app_tune_reply("MOTOR_VEL=%.6f rad/s", s_pending.motor_vel_rad_s);
     else if(app_tune_eq(name, "MOTOR_KP"))
@@ -696,9 +717,13 @@ static void app_tune_get_all(void) {
                    s_pending.vision_kp,
                    s_pending.vision_ki,
                    s_pending.vision_kd);
-    app_tune_reply("FILTER acc_tau=%.4f vision_tau=%.4f",
+    app_tune_reply("FILTER acc_tau=%.4f reverse_tau=%.4f reverse_threshold=%.4f vision_tau=%.4f",
                    s_pending.acc_tau_s,
+                   s_pending.acc_reverse_tau_s,
+                   s_pending.acc_reverse_threshold_m_s2,
                    s_pending.vision_tau_s);
+    app_tune_reply("LIMIT vision_max_angle=%.5f rad",
+                   s_pending.vision_max_angle_rad);
 }
 
 static void app_tune_reply_ctrl(void) {
@@ -746,6 +771,7 @@ static void app_tune_print_help(void) {
     app_tune_reply("CMD @CTRL LEVEL|ACC|VISION 0|1");
     app_tune_reply("CMD @ENABLE 0|1 | @MOTOR angle_rad | @CLEAR | @STATUS");
     app_tune_reply("PARAM MOTOR_ZERO MOTOR_MIN MOTOR_MAX MOTOR_VEL MOTOR_KP MOTOR_KD MOTOR_TOR TOR_PITCH_GAIN");
-    app_tune_reply("PARAM LEVEL_GAIN ACC_GAIN ACC_TAU VISION_TAU VISION_KP VISION_KI VISION_KD");
+    app_tune_reply("PARAM LEVEL_GAIN ACC_GAIN ACC_TAU ACC_REVERSE_TAU ACC_REVERSE_THRESHOLD");
+    app_tune_reply("PARAM VISION_TAU VISION_KP VISION_KI VISION_KD VISION_MAX_ANGLE");
     app_tune_reply("DIR and IMU axis stay in app_config.h");
 }

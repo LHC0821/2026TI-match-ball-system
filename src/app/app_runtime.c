@@ -211,18 +211,24 @@ static void app_runtime_log_status(void) {
     log_info("[04 姿态 PITCH] 原始=%.4f rad 相对零点=%.4f rad",
              status->pitch_raw_rad,
              status->pitch_rad);
-    log_info("[05 加速度 ACC] 原始=%.4f 修正后=%.4f 滤波后=%.4f m/s2",
+    log_info("[05 加速度 ACC] mode=%s tau=%.4f s raw=%.4f linear=%.4f filt=%.4f m/s2 out=%.4f rad",
+             status->acc_reverse_filter ? "reverse" : "normal",
+             status->acc_tau_s,
              status->acc_raw_m_s2,
              status->acc_linear_m_s2,
-             status->acc_m_s2);
-    log_info("[06 视觉 VISION] offset原=%.4f filt=%.4f vel=%.4f P=%.4f I=%.4f D=%.4f out=%.4f",
+             status->acc_m_s2,
+             status->acc_angle_rad);
+    log_info("[06 视觉 VISION] offset原=%.4f filt=%.4f vel=%.4f P=%.4f I=%.4f D=%.4f raw=%.4f out=%.4f limit=%.4f rad sat=%s",
              status->vision_offset_raw_m,
              status->vision_offset_m,
              status->vision_offset_vel_m_s,
              status->vision_p_rad,
              status->vision_i_rad,
              status->vision_d_rad,
-             status->vision_angle_rad);
+             status->vision_raw_angle_rad,
+             status->vision_angle_rad,
+             status->vision_limit_angle_rad,
+             status->vision_angle_saturated ? "是" : "否");
     log_info("[07 输出 OUTPUT] LEVEL=%.4f ACC=%.4f VIS=%.4f raw=%.4f cmd=%.4f SAT=%s",
              status->level_angle_rad,
              status->acc_angle_rad,
