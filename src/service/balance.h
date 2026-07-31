@@ -131,8 +131,9 @@ typedef struct {
     float acc_gain;
 
     float acc_tau_s;
-    float acc_reverse_tau_s;
-    float acc_reverse_threshold_m_s2;
+    float acc_fast_tau_s;
+    float acc_fast_enter_m_s2;
+    float acc_fast_exit_m_s2;
     float vision_tau_s;
     float vision_kp;
     float vision_ki;
@@ -163,8 +164,9 @@ typedef struct {
     float level_gain;
     float acc_gain;
     float acc_tau_s;
-    float acc_reverse_tau_s;
-    float acc_reverse_threshold_m_s2;
+    float acc_fast_tau_s;
+    float acc_fast_enter_m_s2;
+    float acc_fast_exit_m_s2;
     float vision_tau_s;
     float vision_kp;
     float vision_ki;
@@ -186,8 +188,9 @@ typedef struct {
     float pitch_raw_rad;
     float pitch_rad;
     float acc_raw_m_s2;
-    float acc_linear_m_s2;
+    float acc_input_m_s2;
     float acc_m_s2;
+    float acc_error_m_s2;
     float acc_tau_s;
 
     float level_angle_rad;
@@ -216,7 +219,7 @@ typedef struct {
     bool vision_online;
     bool vision_valid;
     bool ball_loop_closed;
-    bool acc_reverse_filter;
+    bool acc_fast_filter;
     bool vision_angle_saturated;
     bool motor_cmd_saturated;
 } BalanceStatus;

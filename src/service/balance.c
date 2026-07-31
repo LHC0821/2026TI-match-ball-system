@@ -20,7 +20,6 @@
 #define BALANCE_VISION_DT_MIN_S 0.005f
 #define BALANCE_VISION_DT_MAX_S 0.10f
 #define BALANCE_VISION_TIMEOUT_MS 300u
-#define BALANCE_ACC_REVERSE_EXIT_RATIO 0.5f
 
 // ! ========================= 变 量 声 明 ========================= ! //
 
@@ -46,7 +45,7 @@ static float s_acc_filt = 0.0f;
 static float s_vision_filt = 0.0f;
 static float s_vision_integral = 0.0f;
 static float s_vis_angle = 0.0f;
-static bool s_acc_reverse_mode = false;
+static bool s_acc_fast_mode = false;
 static bool s_vision_filter_ready = false;
 
 static volatile uint32_t s_motor_rx_ms = 0u;
@@ -171,8 +170,10 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
        config->motor_sign == 0.0f ||
        config->acc_sign == 0.0f || config->pitch_sign == 0.0f ||
        config->ball_sign == 0.0f || config->acc_tau_s < 0.0f ||
-       config->acc_reverse_tau_s < 0.0f ||
-       config->acc_reverse_threshold_m_s2 < 0.0f ||
+       config->acc_fast_tau_s < 0.0f ||
+       config->acc_fast_enter_m_s2 < 0.0f ||
+       config->acc_fast_exit_m_s2 < 0.0f ||
+       config->acc_fast_exit_m_s2 > config->acc_fast_enter_m_s2 ||
        config->vision_tau_s < 0.0f ||
        config->vision_max_angle_rad < 0.0f ||
        config->calib_samples == 0u) {
@@ -195,8 +196,9 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
        !balance_value_valid(config->level_gain) ||
        !balance_value_valid(config->acc_gain) ||
        !balance_value_valid(config->acc_tau_s) ||
-       !balance_value_valid(config->acc_reverse_tau_s) ||
-       !balance_value_valid(config->acc_reverse_threshold_m_s2) ||
+       !balance_value_valid(config->acc_fast_tau_s) ||
+       !balance_value_valid(config->acc_fast_enter_m_s2) ||
+       !balance_value_valid(config->acc_fast_exit_m_s2) ||
        !balance_value_valid(config->vision_tau_s) ||
        !balance_value_valid(config->vision_kp) ||
        !balance_value_valid(config->vision_ki) ||
@@ -232,7 +234,7 @@ BalanceStatusCode balance_init(const BalanceConfig* config) {
     s_vision_filt = 0.0f;
     s_vision_integral = 0.0f;
     s_vis_angle = 0.0f;
-    s_acc_reverse_mode = false;
+    s_acc_fast_mode = false;
     s_vision_filter_ready = false;
     s_motor_rx_ms = 0u;
     s_motor_rx_pos = 0.0f;
@@ -282,8 +284,8 @@ void balance_process(float dt_s) {
                 s_pitch_zero = s_pitch_sum / (float)s_calib_count;
                 s_acc_zero = s_acc_sum / (float)s_calib_count;
                 s_acc_filt = 0.0f;
-                s_acc_reverse_mode = false;
-                s_status.acc_reverse_filter = false;
+                s_acc_fast_mode = false;
+                s_status.acc_fast_filter = false;
                 s_status.acc_tau_s = s_config.acc_tau_s;
                 s_status.motor_cmd_rad = s_config.motor_zero_rad;
                 s_status.motor_cmd_raw_rad = s_config.motor_zero_rad;
@@ -500,8 +502,9 @@ BalanceStatusCode balance_get_tune(BalanceTuneConfig* config) {
     config->level_gain = s_config.level_gain;
     config->acc_gain = s_config.acc_gain;
     config->acc_tau_s = s_config.acc_tau_s;
-    config->acc_reverse_tau_s = s_config.acc_reverse_tau_s;
-    config->acc_reverse_threshold_m_s2 = s_config.acc_reverse_threshold_m_s2;
+    config->acc_fast_tau_s = s_config.acc_fast_tau_s;
+    config->acc_fast_enter_m_s2 = s_config.acc_fast_enter_m_s2;
+    config->acc_fast_exit_m_s2 = s_config.acc_fast_exit_m_s2;
     config->vision_tau_s = s_config.vision_tau_s;
     config->vision_kp = s_config.vision_kp;
     config->vision_ki = s_config.vision_ki;
@@ -526,8 +529,9 @@ BalanceStatusCode balance_apply_tune(const BalanceTuneConfig* config) {
     s_config.level_gain = config->level_gain;
     s_config.acc_gain = config->acc_gain;
     s_config.acc_tau_s = config->acc_tau_s;
-    s_config.acc_reverse_tau_s = config->acc_reverse_tau_s;
-    s_config.acc_reverse_threshold_m_s2 = config->acc_reverse_threshold_m_s2;
+    s_config.acc_fast_tau_s = config->acc_fast_tau_s;
+    s_config.acc_fast_enter_m_s2 = config->acc_fast_enter_m_s2;
+    s_config.acc_fast_exit_m_s2 = config->acc_fast_exit_m_s2;
     s_config.vision_tau_s = config->vision_tau_s;
     s_config.vision_kp = config->vision_kp;
     s_config.vision_ki = config->vision_ki;
@@ -678,8 +682,9 @@ static bool balance_tune_valid(const BalanceTuneConfig* config) {
            balance_value_valid(config->level_gain) &&
            balance_value_valid(config->acc_gain) &&
            balance_value_valid(config->acc_tau_s) &&
-           balance_value_valid(config->acc_reverse_tau_s) &&
-           balance_value_valid(config->acc_reverse_threshold_m_s2) &&
+           balance_value_valid(config->acc_fast_tau_s) &&
+           balance_value_valid(config->acc_fast_enter_m_s2) &&
+           balance_value_valid(config->acc_fast_exit_m_s2) &&
            balance_value_valid(config->vision_tau_s) &&
            balance_value_valid(config->vision_kp) &&
            balance_value_valid(config->vision_ki) &&
@@ -695,8 +700,10 @@ static bool balance_tune_valid(const BalanceTuneConfig* config) {
            config->motor_kd <= BALANCE_MOTOR_KD_MAX &&
            fabsf(config->motor_tor_nm) <= BALANCE_MOTOR_TOR_MAX_NM &&
            config->acc_tau_s >= 0.0f &&
-           config->acc_reverse_tau_s >= 0.0f &&
-           config->acc_reverse_threshold_m_s2 >= 0.0f &&
+           config->acc_fast_tau_s >= 0.0f &&
+           config->acc_fast_enter_m_s2 >= 0.0f &&
+           config->acc_fast_exit_m_s2 >= 0.0f &&
+           config->acc_fast_exit_m_s2 <= config->acc_fast_enter_m_s2 &&
            config->vision_tau_s >= 0.0f &&
            config->vision_max_angle_rad >= 0.0f;
 }
@@ -776,7 +783,7 @@ static void balance_update_imu(float dt_s) {
     float pitch;
     float acc_axis;
     float pitch_rel;
-    float acc_linear;
+    float acc_input;
     float acc_error;
     float acc_tau_s;
 
@@ -806,29 +813,27 @@ static void balance_update_imu(float dt_s) {
     }
 
     pitch_rel = pitch - s_pitch_zero;
-    acc_linear = acc_axis - s_acc_zero + BALANCE_GRAVITY_M_S2 * sinf(pitch_rel);
-    acc_error = acc_linear - s_acc_filt;
-    if(!s_acc_reverse_mode &&
-       acc_linear * s_acc_filt < 0.0f &&
-       fabsf(acc_linear) > s_config.acc_reverse_threshold_m_s2) {
-        s_acc_reverse_mode = true;
+    acc_input = acc_axis - s_acc_zero;
+    acc_error = acc_input - s_acc_filt;
+    if(!s_acc_fast_mode &&
+       fabsf(acc_error) > s_config.acc_fast_enter_m_s2) {
+        s_acc_fast_mode = true;
     }
-    else if(s_acc_reverse_mode &&
-            fabsf(acc_error) <=
-                s_config.acc_reverse_threshold_m_s2 *
-                    BALANCE_ACC_REVERSE_EXIT_RATIO) {
-        s_acc_reverse_mode = false;
+    else if(s_acc_fast_mode &&
+            fabsf(acc_error) < s_config.acc_fast_exit_m_s2) {
+        s_acc_fast_mode = false;
     }
 
-    acc_tau_s = s_acc_reverse_mode
-                    ? s_config.acc_reverse_tau_s
+    acc_tau_s = s_acc_fast_mode
+                    ? s_config.acc_fast_tau_s
                     : s_config.acc_tau_s;
-    s_acc_filt = balance_lpf(acc_linear, s_acc_filt, acc_tau_s, dt_s);
+    s_acc_filt = balance_lpf(acc_input, s_acc_filt, acc_tau_s, dt_s);
     s_status.pitch_rad = pitch_rel;
-    s_status.acc_linear_m_s2 = acc_linear;
+    s_status.acc_input_m_s2 = acc_input;
     s_status.acc_m_s2 = s_acc_filt;
+    s_status.acc_error_m_s2 = acc_error;
     s_status.acc_tau_s = acc_tau_s;
-    s_status.acc_reverse_filter = s_acc_reverse_mode;
+    s_status.acc_fast_filter = s_acc_fast_mode;
 }
 
 static void balance_update_control(float dt_s) {

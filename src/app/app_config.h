@@ -130,11 +130,13 @@
  *
  * pitch_rel = pitch - pitch_zero
  *
- * acc_linear = acc_axis - acc_zero + gravity * sin(pitch_rel)
+ * acc_input = acc_axis - acc_zero
  *
- * acc_tau = reverse_mode ? acc_reverse_tau_s : acc_tau_s
+ * acc_error = acc_input - acc_filt
  *
- * acc_filt = LPF(acc_linear, acc_tau)
+ * acc_tau = fast_mode ? acc_fast_tau_s : acc_tau_s
+ *
+ * acc_filt = LPF(acc_input, acc_tau)
  *
  * level_angle = level_gain * pitch_rel
  *
@@ -178,14 +180,19 @@
 #define APP_CFG_ACC_TAU_S 0.1f
 
 /**
- * @brief 加速度反向快速滤波时间常数，单位 s
+ * @brief 加速度瞬态快速滤波时间常数，单位 s
  */
-#define APP_CFG_ACC_REVERSE_TAU_S 0.05f
+#define APP_CFG_ACC_FAST_TAU_S 0.015f
 
 /**
- * @brief 加速度反向快速滤波进入阈值，单位 m/s2
+ * @brief 加速度瞬态快速滤波进入误差阈值，单位 m/s2
  */
-#define APP_CFG_ACC_REVERSE_THRESHOLD_M_S2 0.2f
+#define APP_CFG_ACC_FAST_ENTER_M_S2 0.20f
+
+/**
+ * @brief 加速度瞬态快速滤波退出误差阈值，单位 m/s2
+ */
+#define APP_CFG_ACC_FAST_EXIT_M_S2 0.10f
 
 /**
  * @brief 视觉偏移一阶低通时间常数，单位 s
