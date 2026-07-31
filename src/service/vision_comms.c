@@ -230,8 +230,8 @@ bool vision_comms_send_status(const VisionMcuStatus* status) {
     }
 
     binary_frame_write_u32_le(&payload[0], status->stamp_ms);
-    binary_frame_write_i16_le(&payload[4], status->offset_mm);
-    binary_frame_write_i16_le(&payload[6], status->offset_vel_mm_s);
+    binary_frame_write_i16_le(&payload[4], status->offset_px);
+    binary_frame_write_i16_le(&payload[6], status->offset_vel_px_s);
     binary_frame_write_i16_le(&payload[8], status->motor_angle_mrad);
     binary_frame_write_i16_le(&payload[10], status->pitch_mrad);
     binary_frame_write_i16_le(&payload[12], status->acc_mm_s2);
@@ -400,10 +400,10 @@ static void vision_comms_handle_ball(const BinaryFrameView* frame) {
     s_ball.stamp_ms = vision_comms_now_ms();
     s_ball.capture_ms = binary_frame_read_u32_le(&frame->payload[0]);
     s_ball.frame_seq = binary_frame_read_u16_le(&frame->payload[4]);
-    s_ball.offset_m = binary_frame_mm_to_m(binary_frame_read_i16_le(&frame->payload[6]));
+    s_ball.offset_px = (float)binary_frame_read_i16_le(&frame->payload[6]);
     s_ball.quality = frame->payload[8];
     s_ball.valid = (flags & VISION_BALL_FLAG_VALID) != 0u;
-    s_ball.velocity_m_s = binary_frame_mm_to_m(binary_frame_read_i16_le(&frame->payload[10]));
+    s_ball.velocity_px_s = (float)binary_frame_read_i16_le(&frame->payload[10]);
     s_ball_pending = true;
 }
 

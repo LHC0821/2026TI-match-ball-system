@@ -76,14 +76,14 @@ typedef enum {
  * @brief BalanceVisionSample 结构体类型
  *
  * @details
- * 视觉端发送的是球相对于期望位置的偏移量；MCU 只把零偏移作为控制目标
+ * 视觉端发送的是球相对于期望位置的像素偏移量，MCU 只把零偏移作为控制目标
  */
 typedef struct {
     uint32_t stamp_ms;
     uint32_t capture_ms;
     uint16_t frame_seq;
-    float offset_m;
-    float velocity_m_s;
+    float offset_px;
+    float velocity_px_s;
     uint8_t quality;
     bool valid;
 } BalanceVisionSample;
@@ -180,9 +180,9 @@ typedef struct {
     BalanceState state;
     uint32_t fault_flags;
 
-    float vision_offset_raw_m;
-    float vision_offset_m;
-    float vision_offset_vel_m_s;
+    float vision_offset_raw_px;
+    float vision_offset_px;
+    float vision_offset_vel_px_s;
     float pitch_raw_rad;
     float pitch_rad;
     float acc_raw_m_s2;

@@ -69,8 +69,8 @@ typedef struct {
  */
 typedef struct {
     uint32_t stamp_ms;
-    int16_t offset_mm;
-    int16_t offset_vel_mm_s;
+    int16_t offset_px;
+    int16_t offset_vel_px_s;
     int16_t motor_angle_mrad;
     int16_t pitch_mrad;
     int16_t acc_mm_s2;

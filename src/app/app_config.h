@@ -49,12 +49,12 @@
 /**
  * @brief 摆杆电机应用位置下限，单位 rad
  */
-#define APP_CFG_MOTOR_MIN_RAD -0.73f
+#define APP_CFG_MOTOR_MIN_RAD -0.345f
 
 /**
  * @brief 摆杆电机应用位置上限，单位 rad
  */
-#define APP_CFG_MOTOR_MAX_RAD 0.98f
+#define APP_CFG_MOTOR_MAX_RAD 1.096f
 
 /**
  * @brief MIT 模式目标速度，单位 rad/s
@@ -165,12 +165,12 @@
 /**
  * @brief 车体俯仰水平补偿增益
  */
-#define APP_CFG_LEVEL_GAIN -11.5f
+#define APP_CFG_LEVEL_GAIN 11.5f
 
 /**
  * @brief 纵向加速度前馈补偿增益
  */
-#define APP_CFG_ACC_GAIN 15.0f
+#define APP_CFG_ACC_GAIN -15.0f
 
 /**
  * @brief 加速度一阶低通时间常数，单位 s
@@ -185,7 +185,7 @@
 /**
  * @brief 加速度反向快速滤波进入阈值，单位 m/s2
  */
-#define APP_CFG_ACC_REVERSE_THRESHOLD_M_S2 0.1f
+#define APP_CFG_ACC_REVERSE_THRESHOLD_M_S2 0.2f
 
 /**
  * @brief 视觉偏移一阶低通时间常数，单位 s
@@ -196,19 +196,19 @@
 #define APP_CFG_VISION_TAU_S 0.0f
 
 /**
- * @brief 视觉偏移比例增益
+ * @brief 视觉偏移比例增益，单位 rad/px
  */
-#define APP_CFG_VISION_KP 1.8f
+#define APP_CFG_VISION_KP 0.0018f
 
 /**
- * @brief 视觉偏移积分增益
+ * @brief 视觉偏移积分增益，单位 rad/(px*s)
  */
 #define APP_CFG_VISION_KI 0.0f
 
 /**
- * @brief 视觉偏移微分增益
+ * @brief 视觉偏移微分增益，单位 rad*s/px
  */
-#define APP_CFG_VISION_KD 0.35f
+#define APP_CFG_VISION_KD 0.00035f
 
 /**
  * @brief 视觉控制角度限幅，单位 rad

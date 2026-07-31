@@ -670,11 +670,11 @@ static bool app_tune_get_param(const char* name) {
     else if(app_tune_eq(name, "VISION_TAU"))
         app_tune_reply("VISION_TAU=%.6f s", s_pending.vision_tau_s);
     else if(app_tune_eq(name, "VISION_KP"))
-        app_tune_reply("VISION_KP=%.6f", s_pending.vision_kp);
+        app_tune_reply("VISION_KP=%.6f rad/px", s_pending.vision_kp);
     else if(app_tune_eq(name, "VISION_KI"))
-        app_tune_reply("VISION_KI=%.6f", s_pending.vision_ki);
+        app_tune_reply("VISION_KI=%.6f rad/(px*s)", s_pending.vision_ki);
     else if(app_tune_eq(name, "VISION_KD"))
-        app_tune_reply("VISION_KD=%.6f", s_pending.vision_kd);
+        app_tune_reply("VISION_KD=%.6f rad*s/px", s_pending.vision_kd);
     else if(app_tune_eq(name, "VISION_MAX_ANGLE"))
         app_tune_reply("VISION_MAX_ANGLE=%.6f rad", s_pending.vision_max_angle_rad);
     else if(app_tune_eq(name, "MOTOR_VEL"))
@@ -773,5 +773,6 @@ static void app_tune_print_help(void) {
     app_tune_reply("PARAM MOTOR_ZERO MOTOR_MIN MOTOR_MAX MOTOR_VEL MOTOR_KP MOTOR_KD MOTOR_TOR TOR_PITCH_GAIN");
     app_tune_reply("PARAM LEVEL_GAIN ACC_GAIN ACC_TAU ACC_REVERSE_TAU ACC_REVERSE_THRESHOLD");
     app_tune_reply("PARAM VISION_TAU VISION_KP VISION_KI VISION_KD VISION_MAX_ANGLE");
+    app_tune_reply("VISION input unit px and px/s");
     app_tune_reply("DIR and IMU axis stay in app_config.h");
 }

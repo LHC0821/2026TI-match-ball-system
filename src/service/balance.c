@@ -374,23 +374,23 @@ void balance_set_vision(const BalanceVisionSample* sample) {
     arrival_ms = balance_now_ms();
     s_last_vision_ms = arrival_ms;
     s_status.vision_online = true;
-    s_status.vision_offset_raw_m = sample->offset_m;
+    s_status.vision_offset_raw_px = sample->offset_px;
     s_status.vision_capture_ms = sample->capture_ms;
     s_status.vision_frame_seq = sample->frame_seq;
 
     if(!sample->valid ||
-       !balance_value_valid(sample->offset_m) ||
-       !balance_value_valid(sample->velocity_m_s)) {
+       !balance_value_valid(sample->offset_px) ||
+       !balance_value_valid(sample->velocity_px_s)) {
         s_status.vision_valid = false;
-        s_status.vision_offset_m = 0.0f;
-        s_status.vision_offset_vel_m_s = 0.0f;
+        s_status.vision_offset_px = 0.0f;
+        s_status.vision_offset_vel_px_s = 0.0f;
         s_vision_filter_ready = false;
         balance_reset_vision_control();
         return;
     }
 
     reset_filter = !s_vision_filter_ready;
-    offset = s_config.ball_sign * sample->offset_m;
+    offset = s_config.ball_sign * sample->offset_px;
 
     if(reset_filter) {
         s_vision_filt = offset;
@@ -413,10 +413,10 @@ void balance_set_vision(const BalanceVisionSample* sample) {
     s_last_valid_vision_ms = arrival_ms;
     alpha_pos = dt_s / (s_config.vision_tau_s + dt_s);
     s_vision_filt += alpha_pos * (offset - s_vision_filt);
-    offset_vel = s_config.ball_sign * sample->velocity_m_s;
+    offset_vel = s_config.ball_sign * sample->velocity_px_s;
 
-    s_status.vision_offset_m = s_vision_filt;
-    s_status.vision_offset_vel_m_s = offset_vel;
+    s_status.vision_offset_px = s_vision_filt;
+    s_status.vision_offset_vel_px_s = offset_vel;
     s_status.vision_valid = true;
     if(s_enable_requested &&
        (s_config.ctrl_mask & BALANCE_CTRL_VISION) != 0u) {
@@ -762,8 +762,8 @@ static void balance_update_vision_timeout(uint32_t now_ms) {
     if(s_last_valid_vision_ms == 0u ||
        (now_ms - s_last_valid_vision_ms) > BALANCE_VISION_TIMEOUT_MS) {
         s_status.vision_valid = false;
-        s_status.vision_offset_m = 0.0f;
-        s_status.vision_offset_vel_m_s = 0.0f;
+        s_status.vision_offset_px = 0.0f;
+        s_status.vision_offset_vel_px_s = 0.0f;
         s_vision_filter_ready = false;
         balance_reset_vision_control();
     }

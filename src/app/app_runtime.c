@@ -12,6 +12,8 @@
 #include "rgb_led/rgb_led.h"
 #include "vision_comms.h"
 
+#include <limits.h>
+#include <math.h>
 #include <stdint.h>
 
 // ! ========================= 宏 定 义 声 明 ========================= ! //
@@ -49,6 +51,12 @@ static void app_runtime_log_status(void);
  * @return 返回值
  */
 static uint8_t app_runtime_make_status_flags(const BalanceStatus* status);
+/**
+ * @brief app_runtime_px_to_i16 内部辅助函数
+ * @param value 像素值
+ * @return i16 像素值
+ */
+static int16_t app_runtime_px_to_i16(float value);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //
 
@@ -125,8 +133,8 @@ static void app_runtime_send_status(void) {
     VisionMcuStatus packet;
 
     packet.stamp_ms = status->stamp_ms;
-    packet.offset_mm = binary_frame_m_to_mm_i16(status->vision_offset_m);
-    packet.offset_vel_mm_s = binary_frame_m_to_mm_i16(status->vision_offset_vel_m_s);
+    packet.offset_px = app_runtime_px_to_i16(status->vision_offset_px);
+    packet.offset_vel_px_s = app_runtime_px_to_i16(status->vision_offset_vel_px_s);
     packet.motor_angle_mrad = binary_frame_rad_to_mrad_i16(status->motor_cmd_rad);
     packet.pitch_mrad = binary_frame_rad_to_mrad_i16(status->pitch_rad);
     packet.acc_mm_s2 = binary_frame_m_to_mm_i16(status->acc_m_s2);
@@ -218,10 +226,10 @@ static void app_runtime_log_status(void) {
              status->acc_linear_m_s2,
              status->acc_m_s2,
              status->acc_angle_rad);
-    log_info("[06 视觉 VISION] offset原=%.4f filt=%.4f vel=%.4f P=%.4f I=%.4f D=%.4f raw=%.4f out=%.4f limit=%.4f rad sat=%s",
-             status->vision_offset_raw_m,
-             status->vision_offset_m,
-             status->vision_offset_vel_m_s,
+    log_info("[06 视觉 VISION] offset原=%.2f px filt=%.2f px vel=%.2f px/s P=%.4f I=%.4f D=%.4f raw=%.4f out=%.4f limit=%.4f rad sat=%s",
+             status->vision_offset_raw_px,
+             status->vision_offset_px,
+             status->vision_offset_vel_px_s,
              status->vision_p_rad,
              status->vision_i_rad,
              status->vision_d_rad,
@@ -274,4 +282,17 @@ static uint8_t app_runtime_make_status_flags(const BalanceStatus* status) {
     }
 
     return flags;
+}
+
+static int16_t app_runtime_px_to_i16(float value) {
+    if(!isfinite(value)) {
+        return 0;
+    }
+    if(value >= (float)INT16_MAX) {
+        return INT16_MAX;
+    }
+    if(value <= (float)INT16_MIN) {
+        return INT16_MIN;
+    }
+    return (int16_t)lroundf(value);
 }
