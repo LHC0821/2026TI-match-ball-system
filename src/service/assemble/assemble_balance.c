@@ -9,6 +9,15 @@
 #include "balance.h"
 #include "delay.h"
 #include "log.h"
+#include "main.h"
+
+// ! ========================= 私 有 函 数 声 明 ========================= ! //
+
+/**
+ * @brief 读取 PA2 小车出发输入
+ * @return 高电平返回 true，低电平返回 false
+ */
+static bool assemble_balance_start_signal_active(void);
 
 // ! ========================= 接 口 函 数 实 现 ========================= ! //
 
@@ -16,6 +25,7 @@ SystemStatus assemble_balance(void) {
     BalanceConfig config = {
         .port_ops = {
             .now_ms = delay_now_ms,
+            .start_signal_active = assemble_balance_start_signal_active,
             .prepare_motor = assemble_motor_prepare,
         },
         .motor_id = APP_CFG_MOTOR_ID,
@@ -34,6 +44,7 @@ SystemStatus assemble_balance(void) {
         .ball_sign = APP_CFG_BALL_SIGN,
         .level_gain = APP_CFG_LEVEL_GAIN,
         .acc_gain = APP_CFG_ACC_GAIN,
+        .start_ff_angle_rad = APP_CFG_START_FF_ANGLE_RAD,
         .acc_tau_s = APP_CFG_ACC_TAU_S,
         .acc_fast_tau_s = APP_CFG_ACC_FAST_TAU_S,
         .acc_fast_enter_m_s2 = APP_CFG_ACC_FAST_ENTER_M_S2,
@@ -42,6 +53,7 @@ SystemStatus assemble_balance(void) {
         .vision_kp = APP_CFG_VISION_KP,
         .vision_ki = APP_CFG_VISION_KI,
         .vision_kd = APP_CFG_VISION_KD,
+        .vision_kff = APP_CFG_VISION_KFF,
         .vision_max_angle_rad = APP_CFG_VISION_MAX_ANGLE_RAD,
         .calib_settle_ms = APP_CFG_CALIB_SETTLE_MS,
         .calib_samples = APP_CFG_CALIB_SAMPLES,
@@ -55,4 +67,11 @@ SystemStatus assemble_balance(void) {
 
     log_info("BALANCE control ready");
     return SYSTEM_STATUS_OK;
+}
+
+// ! ========================= 私 有 函 数 实 现 ========================= ! //
+
+static bool assemble_balance_start_signal_active(void) {
+    return HAL_GPIO_ReadPin(CAR_START_GPIO_Port, CAR_START_Pin) ==
+           GPIO_PIN_SET;
 }

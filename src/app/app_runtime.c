@@ -216,6 +216,8 @@ static void app_runtime_log_status(void) {
              (status->ctrl_mask & BALANCE_CTRL_ACC) != 0u ? "开" : "关",
              (status->ctrl_mask & BALANCE_CTRL_VISION) != 0u ? "开" : "关",
              status->ctrl_mask);
+    log_info("[03A 出发 START] PA2=%s",
+             status->start_signal_active ? "高" : "低");
     log_info("[04 姿态 PITCH] 原始=%.4f rad 相对零点=%.4f rad",
              status->pitch_raw_rad,
              status->pitch_rad);

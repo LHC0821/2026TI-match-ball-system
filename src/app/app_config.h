@@ -44,7 +44,7 @@
 /**
  * @brief 摆杆电机应用零位，单位 rad
  */
-#define APP_CFG_MOTOR_ZERO_RAD 0.0f
+#define APP_CFG_MOTOR_ZERO_RAD 0.1f
 
 /**
  * @brief 摆杆电机应用位置下限，单位 rad
@@ -106,7 +106,7 @@
 /**
  * @brief 视觉球位偏移方向符号
  */
-#define APP_CFG_BALL_SIGN 1.0f
+#define APP_CFG_BALL_SIGN -1.0f
 
 // ! ========================= 3. 平 衡 补 偿 参 数 ========================= ! //
 
@@ -142,6 +142,8 @@
  *
  * acc_angle = acc_gain * atan2(acc_filt, gravity)
  *
+ * start_ff_angle = start_signal_high ? start_ff_angle_rad : 0
+ *
  * offset_filt = LPF(ball_sign * offset, vision_tau_s)
  *
  * offset_vel = ball_sign * vision_velocity
@@ -151,11 +153,12 @@
  * vision_raw = vision_kp * vision_error
  *            + vision_ki * vision_integral
  *            - vision_kd * offset_vel
+ *            - vision_kff * offset_vel
  *
  * vision_angle = clamp(vision_raw, -vision_max_angle, vision_max_angle)
  *
  * motor_cmd_raw = motor_zero
- *               + motor_sign * (level_angle + acc_angle + vision_angle)
+ *               + motor_sign * (level_angle + acc_angle + vision_angle + start_ff_angle)
  *
  * motor_cmd = clamp(motor_cmd_raw, motor_min, motor_max)
  *
@@ -167,12 +170,21 @@
 /**
  * @brief 车体俯仰水平补偿增益
  */
-#define APP_CFG_LEVEL_GAIN 11.5f
+#define APP_CFG_LEVEL_GAIN 0.0f
 
 /**
  * @brief 纵向加速度前馈补偿增益
  */
-#define APP_CFG_ACC_GAIN -15.0f
+#define APP_CFG_ACC_GAIN 0.0228f
+
+/**
+ * @brief PA2 高电平出发前馈角度，单位 rad
+ *
+ * @details
+ * PA2 为高电平时叠加到平衡控制角，低电平时输出为 0；
+ * 0 表示关闭出发前馈并保持原控制行为不变
+ */
+#define APP_CFG_START_FF_ANGLE_RAD 0.1988f
 
 /**
  * @brief 加速度一阶低通时间常数，单位 s
@@ -182,7 +194,7 @@
 /**
  * @brief 加速度瞬态快速滤波时间常数，单位 s
  */
-#define APP_CFG_ACC_FAST_TAU_S 0.015f
+#define APP_CFG_ACC_FAST_TAU_S 0.099f
 
 /**
  * @brief 加速度瞬态快速滤波进入误差阈值，单位 m/s2
@@ -205,7 +217,7 @@
 /**
  * @brief 视觉偏移比例增益，单位 rad/px
  */
-#define APP_CFG_VISION_KP 0.0018f
+#define APP_CFG_VISION_KP 0.00008f
 
 /**
  * @brief 视觉偏移积分增益，单位 rad/(px*s)
@@ -215,12 +227,21 @@
 /**
  * @brief 视觉偏移微分增益，单位 rad*s/px
  */
-#define APP_CFG_VISION_KD 0.00035f
+#define APP_CFG_VISION_KD 0.00007568f
+
+/**
+ * @brief 钢球视觉速度前馈增益，单位 rad*s/px
+ *
+ * @details
+ * 前馈项独立使用视觉端速度：vision_ff = -vision_kff * offset_vel。
+ * 该参数不参与视觉偏移低通，0 表示保持原位置环行为不变。
+ */
+#define APP_CFG_VISION_KFF 0.000067f
 
 /**
  * @brief 视觉控制角度限幅，单位 rad
  */
-#define APP_CFG_VISION_MAX_ANGLE_RAD 0.05236f
+#define APP_CFG_VISION_MAX_ANGLE_RAD 0.50f
 
 // ! ========================= 4. 启 动 校 准 参 数 ========================= ! //
 

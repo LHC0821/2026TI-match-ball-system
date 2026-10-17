@@ -104,6 +104,8 @@ typedef struct {
     uint32_t (*now_ms)(void);
     /** @brief IMU 校准完成后执行一次电机协议准备 */
     bool (*prepare_motor)(uint16_t id);
+    /** @brief 读取小车出发信号，高电平返回 true */
+    bool (*start_signal_active)(void);
 } BalancePortOps;
 
 /**
@@ -129,6 +131,7 @@ typedef struct {
     float ball_sign;
     float level_gain;
     float acc_gain;
+    float start_ff_angle_rad;
 
     float acc_tau_s;
     float acc_fast_tau_s;
@@ -138,6 +141,7 @@ typedef struct {
     float vision_kp;
     float vision_ki;
     float vision_kd;
+    float vision_kff;
     float vision_max_angle_rad;
 
     uint32_t calib_settle_ms;
@@ -163,6 +167,7 @@ typedef struct {
     float tor_pitch_gain;
     float level_gain;
     float acc_gain;
+    float start_ff_angle_rad;
     float acc_tau_s;
     float acc_fast_tau_s;
     float acc_fast_enter_m_s2;
@@ -171,6 +176,7 @@ typedef struct {
     float vision_kp;
     float vision_ki;
     float vision_kd;
+    float vision_kff;
     float vision_max_angle_rad;
 } BalanceTuneConfig;
 
@@ -213,6 +219,7 @@ typedef struct {
     uint8_t ctrl_mask;
 
     bool enable_requested;
+    bool start_signal_active;
     bool imu_online;
     bool motor_online;
     bool motor_enabled;

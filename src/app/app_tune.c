@@ -394,6 +394,7 @@ static void app_tune_defaults(BalanceTuneConfig* config) {
     config->tor_pitch_gain = APP_CFG_TOR_PITCH_GAIN;
     config->level_gain = APP_CFG_LEVEL_GAIN;
     config->acc_gain = APP_CFG_ACC_GAIN;
+    config->start_ff_angle_rad = APP_CFG_START_FF_ANGLE_RAD;
     config->acc_tau_s = APP_CFG_ACC_TAU_S;
     config->acc_fast_tau_s = APP_CFG_ACC_FAST_TAU_S;
     config->acc_fast_enter_m_s2 = APP_CFG_ACC_FAST_ENTER_M_S2;
@@ -402,6 +403,7 @@ static void app_tune_defaults(BalanceTuneConfig* config) {
     config->vision_kp = APP_CFG_VISION_KP;
     config->vision_ki = APP_CFG_VISION_KI;
     config->vision_kd = APP_CFG_VISION_KD;
+    config->vision_kff = APP_CFG_VISION_KFF;
     config->vision_max_angle_rad = APP_CFG_VISION_MAX_ANGLE_RAD;
 }
 
@@ -420,6 +422,7 @@ static bool app_tune_valid(const BalanceTuneConfig* config) {
            isfinite(config->tor_pitch_gain) != 0 &&
            isfinite(config->level_gain) != 0 &&
            isfinite(config->acc_gain) != 0 &&
+           isfinite(config->start_ff_angle_rad) != 0 &&
            isfinite(config->acc_tau_s) != 0 &&
            isfinite(config->acc_fast_tau_s) != 0 &&
            isfinite(config->acc_fast_enter_m_s2) != 0 &&
@@ -428,6 +431,7 @@ static bool app_tune_valid(const BalanceTuneConfig* config) {
            isfinite(config->vision_kp) != 0 &&
            isfinite(config->vision_ki) != 0 &&
            isfinite(config->vision_kd) != 0 &&
+           isfinite(config->vision_kff) != 0 &&
            isfinite(config->vision_max_angle_rad) != 0 &&
            config->motor_min_rad < config->motor_max_rad &&
            config->motor_zero_rad >= config->motor_min_rad &&
@@ -592,6 +596,8 @@ static bool app_tune_set_param(const char* name, const char* text) {
 
     if(app_tune_eq(name, "LEVEL_GAIN"))
         s_pending.level_gain = value;
+    else if(app_tune_eq(name, "START_FF"))
+        s_pending.start_ff_angle_rad = value;
     else if(app_tune_eq(name, "ACC_GAIN"))
         s_pending.acc_gain = value;
     else if(app_tune_eq(name, "ACC_TAU"))
@@ -610,6 +616,8 @@ static bool app_tune_set_param(const char* name, const char* text) {
         s_pending.vision_ki = value;
     else if(app_tune_eq(name, "VISION_KD"))
         s_pending.vision_kd = value;
+    else if(app_tune_eq(name, "VISION_KFF"))
+        s_pending.vision_kff = value;
     else if(app_tune_eq(name, "VISION_MAX_ANGLE"))
         s_pending.vision_max_angle_rad = value;
     else if(app_tune_eq(name, "MOTOR_VEL"))
@@ -665,6 +673,8 @@ static bool app_tune_set_ctrl(const char* name, bool enable) {
 static bool app_tune_get_param(const char* name) {
     if(app_tune_eq(name, "LEVEL_GAIN"))
         app_tune_reply("LEVEL_GAIN=%.6f", s_pending.level_gain);
+    else if(app_tune_eq(name, "START_FF"))
+        app_tune_reply("START_FF=%.6f rad", s_pending.start_ff_angle_rad);
     else if(app_tune_eq(name, "ACC_GAIN"))
         app_tune_reply("ACC_GAIN=%.6f", s_pending.acc_gain);
     else if(app_tune_eq(name, "ACC_TAU"))
@@ -683,6 +693,8 @@ static bool app_tune_get_param(const char* name) {
         app_tune_reply("VISION_KI=%.6f rad/(px*s)", s_pending.vision_ki);
     else if(app_tune_eq(name, "VISION_KD"))
         app_tune_reply("VISION_KD=%.6f rad*s/px", s_pending.vision_kd);
+    else if(app_tune_eq(name, "VISION_KFF"))
+        app_tune_reply("VISION_KFF=%.6f rad*s/px", s_pending.vision_kff);
     else if(app_tune_eq(name, "VISION_MAX_ANGLE"))
         app_tune_reply("VISION_MAX_ANGLE=%.6f rad", s_pending.vision_max_angle_rad);
     else if(app_tune_eq(name, "MOTOR_VEL"))
@@ -719,12 +731,14 @@ static void app_tune_get_all(void) {
                    s_pending.motor_kd,
                    s_pending.motor_tor_nm,
                    s_pending.tor_pitch_gain);
-    app_tune_reply("GAIN level=%.4f acc=%.4f vision_kp=%.4f vision_ki=%.4f vision_kd=%.4f",
+    app_tune_reply("GAIN level=%.4f acc=%.4f vision_kp=%.4f vision_ki=%.4f vision_kd=%.4f vision_kff=%.4f",
                    s_pending.level_gain,
                    s_pending.acc_gain,
                    s_pending.vision_kp,
                    s_pending.vision_ki,
-                   s_pending.vision_kd);
+                   s_pending.vision_kd,
+                   s_pending.vision_kff);
+    app_tune_reply("FF start=%.6f rad", s_pending.start_ff_angle_rad);
     app_tune_reply("FILTER acc_tau=%.4f fast_tau=%.4f fast_enter=%.4f fast_exit=%.4f vision_tau=%.4f",
                    s_pending.acc_tau_s,
                    s_pending.acc_fast_tau_s,
@@ -765,12 +779,13 @@ static void app_tune_print_status(void) {
                    (unsigned long)s_status.apply_count,
                    (unsigned long)s_status.reject_count,
                    (unsigned long)s_status.overflow_count);
-    app_tune_reply("STATUS balance=%s enable=%u loop=%s vis=%u motor=%u fault=0x%08lX",
+    app_tune_reply("STATUS balance=%s enable=%u loop=%s vis=%u motor=%u pa2=%u fault=0x%08lX",
                    balance_state_str(balance_status->state),
                    balance_status->enable_requested ? 1u : 0u,
                    balance_status->ball_loop_closed ? "CLOSED" : "OPEN",
                    balance_status->vision_valid ? 1u : 0u,
                    balance_status->motor_enabled ? 1u : 0u,
+                   balance_status->start_signal_active ? 1u : 0u,
                    (unsigned long)balance_status->fault_flags);
     app_tune_reply_ctrl();
 }
@@ -780,8 +795,8 @@ static void app_tune_print_help(void) {
     app_tune_reply("CMD @CTRL LEVEL|ACC|VISION 0|1");
     app_tune_reply("CMD @ENABLE 0|1 | @MOTOR angle_rad | @CLEAR | @STATUS");
     app_tune_reply("PARAM MOTOR_ZERO MOTOR_MIN MOTOR_MAX MOTOR_VEL MOTOR_KP MOTOR_KD MOTOR_TOR TOR_PITCH_GAIN");
-    app_tune_reply("PARAM LEVEL_GAIN ACC_GAIN ACC_TAU ACC_FAST_TAU ACC_FAST_ENTER ACC_FAST_EXIT");
-    app_tune_reply("PARAM VISION_TAU VISION_KP VISION_KI VISION_KD VISION_MAX_ANGLE");
+    app_tune_reply("PARAM LEVEL_GAIN START_FF ACC_GAIN ACC_TAU ACC_FAST_TAU ACC_FAST_ENTER ACC_FAST_EXIT");
+    app_tune_reply("PARAM VISION_TAU VISION_KP VISION_KI VISION_KD VISION_KFF VISION_MAX_ANGLE");
     app_tune_reply("VISION input unit px and px/s");
     app_tune_reply("DIR and IMU axis stay in app_config.h");
 }
